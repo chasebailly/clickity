@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Clickity — a lightweight, cross-platform autoclicker"
+    />
+    <link rel="icon" type="image/svg+xml" href="/src/assets/clickity-mark.svg" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <title>Clickity</title>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand">
+          <img
+            class="brand-mark"
+            src="/src/assets/clickity-mark.svg"
+            alt=""
+            width="42"
+            height="42"
+          />
+          <div>
+            <h1>Clickity</h1>
+            <p>Clicks, right on cue.</p>
+          </div>
+        </div>
+        <div class="status-pill" id="status-pill" data-phase="idle">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="status-label">Idle</span>
+        </div>
+      </header>
+
+      <div class="platform-notice" id="platform-notice" role="status" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 8v5m0 3.5v.01M10.3 3.9 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+        </svg>
+        <div>
+          <strong id="platform-notice-title">Compatibility notice</strong>
+          <p id="platform-notice-copy"></p>
+        </div>
+      </div>
+
+      <form id="click-form" novalidate>
+        <section class="panel interval-panel" aria-labelledby="interval-heading">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Timing</span>
+              <h2 id="interval-heading">Click interval</h2>
+            </div>
+            <span class="summary-chip" id="interval-summary">Every 1 second</span>
+          </div>
+
+          <div class="interval-grid" aria-describedby="interval-error interval-warning">
+            <label class="number-field">
+              <span>Hours</span>
+              <input
+                id="hours"
+                data-setting
+                type="number"
+                inputmode="numeric"
+                min="0"
+                max="9999"
+                step="1"
+                value="0"
+              />
+            </label>
+            <label class="number-field">
+              <span>Minutes</span>
+              <input
+                id="minutes"
+                data-setting
+                type="number"
+                inputmode="numeric"
+                min="0"
+                max="59"
+                step="1"
+                value="0"
+              />
+            </label>
+            <label class="number-field">
+              <span>Seconds</span>
+              <input
+                id="seconds"
+                data-setting
+                type="number"
+                inputmode="numeric"
+                min="0"
+                max="59"
+                step="1"
+                value="1"
+              />
+            </label>
+            <label class="number-field">
+              <span>Milliseconds</span>
+              <input
+                id="milliseconds"
+                data-setting
+                type="number"
+                inputmode="numeric"
+                min="0"
+                max="999"
+                step="1"
+                value="0"
+              />
+            </label>
+          </div>
+          <p class="field-message error-text" id="interval-error" role="alert"></p>
+          <p class="field-message warning-text" id="interval-warning"></p>
+        </section>
+
+        <div class="split-panels">
+          <fieldset class="panel compact-panel">
+            <legend>
+              <span class="eyebrow">Action</span>
+              Mouse button
+            </legend>
+            <div class="segmented-control three-up">
+              <label>
+                <input data-setting type="radio" name="button" value="left" checked />
+                <span>Left</span>
+              </label>
+              <label>
+                <input data-setting type="radio" name="button" value="middle" />
+                <span>Middle</span>
+              </label>
+              <label>
+                <input data-setting type="radio" name="button" value="right" />
+                <span>Right</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="panel compact-panel repeat-panel">
+            <legend>
+              <span class="eyebrow">Limit</span>
+              Repeat
+            </legend>
+            <div class="repeat-row">
+              <label class="radio-line">
+                <input data-setting type="radio" name="repeat-mode" value="count" checked />
+                <span>Count</span>
+              </label>
+              <input
+                class="count-input"
+                id="repeat-count"
+                data-setting
+                aria-label="Number of clicks"
+                aria-describedby="repeat-error"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="1000000000"
+                step="1"
+                value="10"
+              />
+            </div>
+            <label class="radio-line until-row">
+              <input data-setting type="radio" name="repeat-mode" value="untilStopped" />
+              <span>Until stopped</span>
+            </label>
+            <p class="field-message error-text" id="repeat-error" role="alert"></p>
+          </fieldset>
+        </div>
+
+        <section class="panel" aria-labelledby="position-heading">
+          <div class="section-heading position-heading">
+            <div>
+              <span class="eyebrow">Target</span>
+              <h2 id="position-heading">Cursor position</h2>
+            </div>
+          </div>
+
+          <div class="position-options">
+            <label class="choice-card">
+              <input data-setting type="radio" name="position-mode" value="current" checked />
+              <span class="choice-indicator" aria-hidden="true"></span>
+              <span>
+                <strong>Follow cursor</strong>
+                <small>Click wherever the pointer is each time.</small>
+              </span>
+            </label>
+
+            <label class="choice-card">
+              <input data-setting type="radio" name="position-mode" value="fixed" />
+              <span class="choice-indicator" aria-hidden="true"></span>
+              <span>
+                <strong>Fixed position</strong>
+                <small>Move to the same coordinates before each click.</small>
+              </span>
+            </label>
+          </div>
+
+          <div class="coordinate-row" id="coordinate-row" aria-describedby="position-error">
+            <label class="coordinate-field">
+              <span>X</span>
+              <input id="position-x" data-setting type="number" inputmode="numeric" step="1" value="0" />
+            </label>
+            <label class="coordinate-field">
+              <span>Y</span>
+              <input id="position-y" data-setting type="number" inputmode="numeric" step="1" value="0" />
+            </label>
+            <button class="secondary-button capture-button" id="capture-position" data-setting type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2v3m0 14v3M2 12h3m14 0h3M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0Z" />
+              </svg>
+              <span>Capture</span>
+            </button>
+          </div>
+          <p class="field-message error-text" id="position-error" role="alert"></p>
+        </section>
+
+        <section class="panel hotkey-panel" aria-labelledby="hotkey-heading">
+          <div>
+            <span class="eyebrow">Quick control</span>
+            <h2 id="hotkey-heading">Start / stop shortcut</h2>
+            <p>Works while Clickity is in the background.</p>
+          </div>
+          <div class="hotkey-control">
+            <kbd id="hotkey-display">F6</kbd>
+            <button class="secondary-button" id="change-hotkey" data-setting type="button">Change</button>
+          </div>
+          <p class="hotkey-capture-copy" id="hotkey-capture-copy" aria-live="polite"></p>
+          <p class="field-message error-text" id="hotkey-error" role="alert"></p>
+        </section>
+
+        <div class="action-area">
+          <div class="run-copy">
+            <strong id="run-title">Ready when you are</strong>
+            <span id="run-detail">The first click happens after one interval.</span>
+          </div>
+          <button class="primary-button" id="action-button" type="submit">
+            <span id="action-label">Start clicking</span>
+            <kbd id="action-hotkey">F6</kbd>
+          </button>
+        </div>
+      </form>
+
+      <div class="sr-only" id="live-region" aria-live="polite" aria-atomic="true"></div>
+    </div>
+  </body>
+</html>
