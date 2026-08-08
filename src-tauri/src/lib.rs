@@ -8,8 +8,11 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Mutex,
 };
-use tauri::{AppHandle, Manager, State, WindowEvent};
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+use tauri::{AppHandle, Emitter, Manager, State, WindowEvent};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, ShortcutState};
+
+const CAPTURE_SHORTCUT: &str = "F7";
+const POSITION_CAPTURE_EVENT: &str = "position-capture-result";
 
 struct AppState {
     engine: ClickEngine,
@@ -17,6 +20,9 @@ struct AppState {
     hotkey_registered: AtomicBool,
     hotkey_error: Mutex<Option<String>>,
     hotkey_down: AtomicBool,
+    capture_active: AtomicBool,
+    capture_hotkey_registered: AtomicBool,
+    capture_hotkey_down: AtomicBool,
 }
 
 impl Default for AppState {
@@ -27,8 +33,18 @@ impl Default for AppState {
             hotkey_registered: AtomicBool::new(false),
             hotkey_error: Mutex::new(None),
             hotkey_down: AtomicBool::new(false),
+            capture_active: AtomicBool::new(false),
+            capture_hotkey_registered: AtomicBool::new(false),
+            capture_hotkey_down: AtomicBool::new(false),
         }
     }
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PositionCaptureResult {
+    position: Option<CursorPosition>,
+    error: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -71,6 +87,9 @@ fn start_clicking(
     config: ClickConfig,
     state: State<'_, AppState>,
 ) -> Result<RuntimeSnapshot, String> {
+    if state.capture_active.load(Ordering::Relaxed) {
+        return Err("Finish or cancel position capture before starting Clickity.".into());
+    }
     state.engine.update_config(config)?;
     state.engine.start(app)
 }
@@ -81,10 +100,38 @@ fn stop_clicking(app: AppHandle, state: State<'_, AppState>) -> RuntimeSnapshot 
 }
 
 #[tauri::command]
-fn get_cursor_position() -> Result<CursorPosition, String> {
-    let mouse = SystemMouse::new()?;
-    let (x, y) = mouse.location()?;
-    Ok(CursorPosition { x, y })
+fn begin_position_capture(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    if state.engine.is_running() {
+        return Err("Stop Clickity before capturing a position.".into());
+    }
+
+    if !state.capture_hotkey_registered.load(Ordering::Relaxed) {
+        app.global_shortcut()
+            .register(CAPTURE_SHORTCUT)
+            .map_err(|error| format!("F7 could not be registered for position capture: {error}"))?;
+        state
+            .capture_hotkey_registered
+            .store(true, Ordering::Relaxed);
+    }
+
+    state.capture_hotkey_down.store(false, Ordering::Relaxed);
+    state.capture_active.store(true, Ordering::Relaxed);
+    Ok(())
+}
+
+#[tauri::command]
+fn cancel_position_capture(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    state.capture_active.store(false, Ordering::Relaxed);
+    state.capture_hotkey_down.store(false, Ordering::Relaxed);
+    if state.capture_hotkey_registered.load(Ordering::Relaxed) {
+        app.global_shortcut()
+            .unregister(CAPTURE_SHORTCUT)
+            .map_err(|error| format!("F7 could not be released after position capture: {error}"))?;
+        state
+            .capture_hotkey_registered
+            .store(false, Ordering::Relaxed);
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -96,6 +143,9 @@ fn set_hotkey(
     let accelerator = accelerator.trim();
     if accelerator.is_empty() {
         return Err("Choose a keyboard shortcut.".into());
+    }
+    if accelerator.eq_ignore_ascii_case(CAPTURE_SHORTCUT) {
+        return Err("F7 is reserved for position capture.".into());
     }
 
     let mut current = state
@@ -133,8 +183,47 @@ pub fn run() {
         .manage(AppState::default())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, _shortcut, event| {
+                .with_handler(|app, shortcut, event| {
                     let state = app.state::<AppState>();
+
+                    if shortcut.matches(Modifiers::empty(), Code::F7) {
+                        match event.state() {
+                            ShortcutState::Pressed => {
+                                let first_press =
+                                    !state.capture_hotkey_down.swap(true, Ordering::Relaxed);
+                                if first_press
+                                    && state.capture_active.swap(false, Ordering::Relaxed)
+                                {
+                                    let result = SystemMouse::new().and_then(|mouse| {
+                                        mouse.location().map(|(x, y)| CursorPosition { x, y })
+                                    });
+                                    let payload = match result {
+                                        Ok(position) => PositionCaptureResult {
+                                            position: Some(position),
+                                            error: None,
+                                        },
+                                        Err(error) => PositionCaptureResult {
+                                            position: None,
+                                            error: Some(error),
+                                        },
+                                    };
+                                    let _ = app.emit(POSITION_CAPTURE_EVENT, payload);
+                                }
+                            }
+                            ShortcutState::Released => {
+                                state.capture_hotkey_down.store(false, Ordering::Relaxed);
+                            }
+                        }
+                        return;
+                    }
+
+                    if state.capture_active.load(Ordering::Relaxed) {
+                        if event.state() == ShortcutState::Released {
+                            state.hotkey_down.store(false, Ordering::Relaxed);
+                        }
+                        return;
+                    }
+
                     match event.state() {
                         ShortcutState::Pressed => {
                             if !state.hotkey_down.swap(true, Ordering::Relaxed) {
@@ -164,7 +253,9 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if matches!(event, WindowEvent::Destroyed) {
-                window.state::<AppState>().engine.stop(window.app_handle());
+                let state = window.state::<AppState>();
+                state.capture_active.store(false, Ordering::Relaxed);
+                state.engine.stop(window.app_handle());
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -172,7 +263,8 @@ pub fn run() {
             update_config,
             start_clicking,
             stop_clicking,
-            get_cursor_position,
+            begin_position_capture,
+            cancel_position_capture,
             set_hotkey,
         ])
         .run(tauri::generate_context!())

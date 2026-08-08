@@ -1,0 +1,56 @@
+{
+  "title": "Choose a modern utility direction",
+  "question": "These three keep the familiar utility structure while giving Clickity a more specific modern identity.",
+  "options": [
+    {
+      "id": "control-deck",
+      "label": "Control Deck",
+      "kicker": "PRECISION",
+      "lineage": "compact audio mixers and streaming control decks",
+      "thesis": "Timing, repeat, and targeting become three precise control channels feeding one unmistakable run control.",
+      "palette": ["#10151c", "#1d2630", "#eef2f4", "#4cc9b0", "#f0a94b"],
+      "materials": ["flush channel rails", "detented controls", "matte keylines"],
+      "viewport": "A slim status header leads into three stacked control channels, each with a large value and compact toggles, while a mint start strip spans the bottom edge.",
+      "risk": "Its precision feels modern and useful, but too many track-like controls could make Clickity resemble streaming software.",
+      "sketch": ".impeccable/sketches/control-deck.webp"
+    },
+    {
+      "id": "quick-panel",
+      "label": "Quick Panel",
+      "kicker": "IMMEDIACY",
+      "lineage": "handheld-console quick settings overlays",
+      "thesis": "The most-used choices sit in one thumb-readable command surface, with advanced coordinates appearing only when relevant.",
+      "palette": ["#17191d", "#25282e", "#f4f4f0", "#b9e44c", "#737983"],
+      "materials": ["layered overlay tray", "selection rails", "chunky segmented toggles"],
+      "viewport": "A large ready-state and start control occupy the top third, followed by broad timing and mouse-button rows, with target details expanding below on demand.",
+      "risk": "Its speed and gaming familiarity are excellent, but progressive disclosure must not hide settings power users expect.",
+      "sketch": ".impeccable/sketches/quick-panel.webp"
+    },
+    {
+      "id": "peripheral-studio",
+      "label": "Peripheral Studio",
+      "kicker": "TACTILITY",
+      "lineage": "modern gaming-mouse configuration software",
+      "thesis": "A simplified mouse diagram and disciplined settings rail make click behavior feel tangible without resorting to RGB theatrics.",
+      "palette": ["#eef0f3", "#dfe3e8", "#171a20", "#6558d9", "#25a58d"],
+      "materials": ["satin light surfaces", "device-line diagrams", "quiet inset controls"],
+      "viewport": "A compact mouse diagram and live status share the top region, with timing and repeat controls below in a clean two-column rail and a violet start action at the base.",
+      "risk": "It fits the gaming audience naturally, but may imply Clickity is companion software for a specific mouse.",
+      "sketch": ".impeccable/sketches/peripheral-studio.webp"
+    }
+  ],
+  "reroll": true,
+  "canon": true,
+  "canonCard": {
+    "label": "Modern Utility Panel",
+    "kicker": "THE CATEGORY STANDARD",
+    "lineage": "polished contemporary desktop utility",
+    "thesis": "The familiar card-based settings panel from the first round, executed at full craft.",
+    "palette": ["#11151b", "#1d232d", "#f2f4f6", "#5c7cfa", "#77808c"],
+    "materials": ["soft panels", "restrained elevation", "rounded segmented controls"],
+    "viewport": "A compact header and status pill lead into timing, click, and target cards, ending with a full-width blue start button.",
+    "risk": "It is the easiest to understand and the hardest to remember.",
+    "sketch": ".impeccable/sketches/canon-modern-utility.webp"
+  },
+  "steer": true
+}

@@ -12,6 +12,8 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource-variable/roboto-condensed": "^5.3.0",
     "@tauri-apps/api": "^2"
   },
   "devDependencies": {

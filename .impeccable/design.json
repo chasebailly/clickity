@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-05T08:43:18-07:00",
+  "title": "Design System: Clickity",
+  "extensions": {
+    "colorMeta": {
+      "carbon": {
+        "role": "neutral",
+        "displayName": "Carbon",
+        "tonalRamp": ["oklch(15% 0.006 250)", "oklch(25% 0.006 250)", "oklch(36% 0.006 250)", "oklch(48% 0.006 250)", "oklch(60% 0.006 250)", "oklch(72% 0.006 250)", "oklch(84% 0.006 250)", "oklch(95% 0.006 250)"]
+      },
+      "graphite": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "tonalRamp": ["oklch(15% 0.008 250)", "oklch(25% 0.008 250)", "oklch(36% 0.008 250)", "oklch(48% 0.008 250)", "oklch(60% 0.008 250)", "oklch(72% 0.008 250)", "oklch(84% 0.008 250)", "oklch(95% 0.008 250)"]
+      },
+      "graphite-raised": {
+        "role": "neutral",
+        "displayName": "Raised Graphite",
+        "tonalRamp": ["oklch(15% 0.009 250)", "oklch(25% 0.009 250)", "oklch(36% 0.009 250)", "oklch(48% 0.009 250)", "oklch(60% 0.009 250)", "oklch(72% 0.009 250)", "oklch(84% 0.009 250)", "oklch(95% 0.009 250)"]
+      },
+      "graphite-active": {
+        "role": "neutral",
+        "displayName": "Active Graphite",
+        "tonalRamp": ["oklch(15% 0.01 250)", "oklch(25% 0.01 250)", "oklch(36% 0.01 250)", "oklch(48% 0.01 250)", "oklch(60% 0.01 250)", "oklch(72% 0.01 250)", "oklch(84% 0.01 250)", "oklch(95% 0.01 250)"]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Panel Border",
+        "tonalRamp": ["oklch(15% 0.008 250)", "oklch(25% 0.008 250)", "oklch(36% 0.008 250)", "oklch(48% 0.008 250)", "oklch(60% 0.008 250)", "oklch(72% 0.008 250)", "oklch(84% 0.008 250)", "oklch(95% 0.008 250)"]
+      },
+      "border-soft": {
+        "role": "neutral",
+        "displayName": "Soft Border",
+        "tonalRamp": ["oklch(15% 0.007 250)", "oklch(25% 0.007 250)", "oklch(36% 0.007 250)", "oklch(48% 0.007 250)", "oklch(60% 0.007 250)", "oklch(72% 0.007 250)", "oklch(84% 0.007 250)", "oklch(95% 0.007 250)"]
+      },
+      "warm-white": {
+        "role": "neutral",
+        "displayName": "Warm White",
+        "tonalRamp": ["oklch(15% 0.008 100)", "oklch(25% 0.008 100)", "oklch(36% 0.008 100)", "oklch(48% 0.008 100)", "oklch(60% 0.008 100)", "oklch(72% 0.008 100)", "oklch(84% 0.008 100)", "oklch(95% 0.008 100)"]
+      },
+      "muted-steel": {
+        "role": "neutral",
+        "displayName": "Muted Steel",
+        "tonalRamp": ["oklch(15% 0.01 250)", "oklch(25% 0.01 250)", "oklch(36% 0.01 250)", "oklch(48% 0.01 250)", "oklch(60% 0.01 250)", "oklch(72% 0.01 250)", "oklch(84% 0.01 250)", "oklch(95% 0.01 250)"]
+      },
+      "bright-steel": {
+        "role": "neutral",
+        "displayName": "Bright Steel",
+        "tonalRamp": ["oklch(15% 0.008 250)", "oklch(25% 0.008 250)", "oklch(36% 0.008 250)", "oklch(48% 0.008 250)", "oklch(60% 0.008 250)", "oklch(72% 0.008 250)", "oklch(84% 0.008 250)", "oklch(95% 0.008 250)"]
+      },
+      "signal-chartreuse": {
+        "role": "primary",
+        "displayName": "Signal Chartreuse",
+        "tonalRamp": ["oklch(15% 0.07 125)", "oklch(25% 0.1 125)", "oklch(36% 0.13 125)", "oklch(48% 0.16 125)", "oklch(60% 0.18 125)", "oklch(72% 0.18 125)", "oklch(84% 0.15 125)", "oklch(95% 0.06 125)"]
+      },
+      "signal-ink": {
+        "role": "neutral",
+        "displayName": "Signal Ink",
+        "tonalRamp": ["oklch(15% 0.01 125)", "oklch(25% 0.01 125)", "oklch(36% 0.01 125)", "oklch(48% 0.01 125)", "oklch(60% 0.01 125)", "oklch(72% 0.01 125)", "oklch(84% 0.01 125)", "oklch(95% 0.01 125)"]
+      },
+      "warning-amber": {
+        "role": "secondary",
+        "displayName": "Warning Amber",
+        "tonalRamp": ["oklch(15% 0.05 75)", "oklch(25% 0.08 75)", "oklch(36% 0.11 75)", "oklch(48% 0.13 75)", "oklch(60% 0.14 75)", "oklch(72% 0.13 75)", "oklch(84% 0.1 75)", "oklch(95% 0.04 75)"]
+      },
+      "danger-coral": {
+        "role": "secondary",
+        "displayName": "Danger Coral",
+        "tonalRamp": ["oklch(15% 0.06 25)", "oklch(25% 0.09 25)", "oklch(36% 0.12 25)", "oklch(48% 0.15 25)", "oklch(60% 0.16 25)", "oklch(72% 0.15 25)", "oklch(84% 0.11 25)", "oklch(95% 0.04 25)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Instrument Display", "purpose": "Large interval values and compact numeric readouts." },
+      "headline": { "displayName": "Product Headline", "purpose": "The Clickity wordmark." },
+      "title": { "displayName": "Section Title", "purpose": "Section headings and setting-rail labels." },
+      "body": { "displayName": "Interface Body", "purpose": "Summaries, descriptions, and operational guidance." },
+      "label": { "displayName": "Compact Label", "purpose": "Field names, helper copy, and small controls." }
+    },
+    "shadows": [
+      { "name": "control-lift", "value": "0 7px 16px rgba(0, 0, 0, 0.12)", "purpose": "Soft ambient separation for segmented controls and secondary buttons." },
+      { "name": "panel-lift", "value": "0 14px 32px rgba(0, 0, 0, 0.16)", "purpose": "Ambient depth for the timing console." },
+      { "name": "dock-lift", "value": "0 14px 36px rgba(0, 0, 0, 0.22)", "purpose": "Strongest restrained lift for the persistent action dock." }
+    ],
+    "motion": [
+      { "name": "status-pulse", "value": "1.4s ease-in-out infinite", "purpose": "Signals starting, capturing, or running state on the dock dot; disabled under reduced-motion." }
+    ],
+    "breakpoints": [
+      { "name": "rail-stack", "value": "540px" },
+      { "name": "compound-stack", "value": "430px" },
+      { "name": "timing-grid", "value": "350px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Timing Console",
+      "kind": "custom",
+      "refersTo": "timing-console",
+      "description": "A continuous four-part timing instrument with large condensed values and a shared summary.",
+      "html": "<div class=\"ds-timing-console\"><div class=\"ds-timing-grid\"><label><span>Hours</span><input value=\"0\" aria-label=\"Hours\"></label><label><span>Minutes</span><input value=\"0\" aria-label=\"Minutes\"></label><label><span>Seconds</span><input value=\"1\" aria-label=\"Seconds\"></label><label><span>Milliseconds</span><input value=\"0\" aria-label=\"Milliseconds\"></label></div><div class=\"ds-timing-summary\">Every 1 second</div></div>",
+      "css": ".ds-timing-console{overflow:hidden;border:1px solid var(--line,#3b3f45);border-radius:12px;background:var(--surface,#17191c);box-shadow:0 14px 32px rgba(0,0,0,.16);color:var(--text,#f5f5f1)}.ds-timing-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.ds-timing-grid label{min-width:0;padding:14px 11px 12px;border-right:1px solid var(--line,#3b3f45)}.ds-timing-grid label:last-child{border-right:0}.ds-timing-grid label>span{display:block;margin-bottom:7px;overflow:hidden;color:var(--muted,#969aa1);font:650 10px/1.35 \"Manrope Variable\",Manrope,sans-serif;text-overflow:ellipsis;white-space:nowrap}.ds-timing-grid input{width:100%;height:55px;padding:0 4px;border:0;outline:0;background:transparent;color:inherit;font:650 clamp(34px,7vw,47px)/1 \"Roboto Condensed Variable\",\"Roboto Condensed\",sans-serif;font-variation-settings:\"wdth\" 82;letter-spacing:-.045em;text-align:center}.ds-timing-grid label:focus-within{background:color-mix(in srgb,var(--signal,#b9e643) 5%,transparent);box-shadow:inset 0 -2px var(--signal,#b9e643)}.ds-timing-summary{padding:9px 14px 10px;border-top:1px solid var(--line,#3b3f45);color:var(--steel,#c4c7cd);font:620 13px/1.45 \"Manrope Variable\",Manrope,sans-serif;text-align:center}"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "custom",
+      "refersTo": "segment-selected",
+      "description": "A broad graphite rail whose selected option becomes the chartreuse operational signal.",
+      "html": "<div class=\"ds-segments\"><button class=\"ds-segment ds-selected\" type=\"button\">Left</button><button class=\"ds-segment\" type=\"button\">Middle</button><button class=\"ds-segment\" type=\"button\">Right</button></div>",
+      "css": ".ds-segments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));overflow:hidden;border:1px solid var(--line-soft,#2d3035);border-radius:9px;background:var(--surface-raised,#212429);box-shadow:0 7px 16px rgba(0,0,0,.12)}.ds-segment{min-height:43px;padding:0 10px;border:0;border-left:1px solid #0f1113;background:transparent;color:var(--steel,#c4c7cd);font:620 12px/1.2 \"Manrope Variable\",Manrope,sans-serif;cursor:pointer}.ds-segment:first-child{border-left:0}.ds-segment:hover{background:var(--surface-active,#2a2e34);color:var(--text,#f5f5f1)}.ds-segment:focus-visible{outline:2px solid var(--text,#f5f5f1);outline-offset:-3px}.ds-segment.ds-selected{background:var(--signal,#b9e643);color:var(--signal-ink,#11130e);font-weight:740}"
+    },
+    {
+      "name": "Compact Numeric Input",
+      "kind": "input",
+      "refersTo": "input-compact",
+      "description": "A raised graphite field for counts and coordinates using condensed instrument numerals.",
+      "html": "<label class=\"ds-input-wrap\"><span>Clicks</span><input class=\"ds-input\" type=\"number\" value=\"10\"></label>",
+      "css": ".ds-input-wrap{position:relative;display:block;width:112px}.ds-input-wrap span{position:absolute;z-index:1;top:5px;left:11px;color:var(--muted,#969aa1);font:700 8px/1 \"Manrope Variable\",Manrope,sans-serif;text-transform:uppercase}.ds-input{width:100%;height:45px;padding:12px 10px 2px;border:1px solid var(--line-soft,#2d3035);border-radius:9px;outline:0;background:var(--surface-raised,#212429);color:var(--text,#f5f5f1);font:620 18px/1 \"Roboto Condensed Variable\",\"Roboto Condensed\",sans-serif;text-align:center}.ds-input:hover{border-color:#565b62}.ds-input:focus-visible{border-color:var(--signal,#b9e643);box-shadow:0 0 0 2px color-mix(in srgb,var(--signal,#b9e643) 22%,transparent)}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A compact neutral action for capture, shortcut changes, and supporting commands.",
+      "html": "<button class=\"ds-button-secondary\" type=\"button\">Change</button>",
+      "css": ".ds-button-secondary{min-height:34px;padding:0 12px;border:1px solid var(--line-soft,#2d3035);border-radius:9px;outline:0;background:var(--surface-raised,#212429);box-shadow:0 7px 16px rgba(0,0,0,.12);color:var(--steel,#c4c7cd);font:700 10px/1.2 \"Manrope Variable\",Manrope,sans-serif;cursor:pointer}.ds-button-secondary:hover{border-color:#565b62;background:var(--surface-active,#2a2e34);color:var(--text,#f5f5f1)}.ds-button-secondary:focus-visible{outline:2px solid var(--signal,#b9e643);outline-offset:2px}.ds-button-secondary:active{transform:translateY(1px)}"
+    },
+    {
+      "name": "Capture Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A neutral button that exposes the dedicated F7 target-capture shortcut and signals when capture is armed.",
+      "html": "<button class=\"ds-capture\" type=\"button\" aria-pressed=\"false\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 2v3m0 14v3M2 12h3m14 0h3M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0Z\"/></svg><span>Capture</span><kbd>F7</kbd></button>",
+      "css": ".ds-capture{display:flex;min-width:108px;min-height:45px;align-items:center;justify-content:center;gap:7px;padding:0 10px;border:1px solid var(--line-soft,#2d3035);border-radius:9px;outline:0;background:var(--surface-raised,#212429);box-shadow:0 7px 16px rgba(0,0,0,.12);color:var(--steel,#c4c7cd);font:680 11px/1.2 \"Manrope Variable\",Manrope,sans-serif;cursor:pointer}.ds-capture svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.55}.ds-capture kbd{padding:2px 4px;border:1px solid var(--line,#3b3f45);border-radius:4px;background:var(--ink,#101214);color:var(--muted,#969aa1);font:650 9px/1 \"Roboto Condensed Variable\",sans-serif}.ds-capture:hover{border-color:#565b62;background:var(--surface-active,#2a2e34);color:var(--text,#f5f5f1)}.ds-capture:focus-visible{outline:2px solid var(--signal,#b9e643);outline-offset:2px}.ds-capture[aria-pressed=true]{border-color:var(--signal,#b9e643);color:var(--signal,#b9e643)}"
+    },
+    {
+      "name": "Run Dock",
+      "kind": "custom",
+      "refersTo": "run-dock",
+      "description": "The persistent chartreuse operational surface joining live run status to the primary start or stop action.",
+      "html": "<div class=\"ds-run-dock\"><div class=\"ds-run-state\"><span class=\"ds-status-dot\"></span><div><strong>Ready when you are</strong><small>The first click happens after one interval.</small></div></div><button class=\"ds-primary-action\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m8 5 11 7-11 7Z\"/></svg><span>Start clicking</span><kbd>F6</kbd></button></div>",
+      "css": ".ds-run-dock{display:grid;grid-template-columns:minmax(0,.92fr) minmax(230px,1.08fr);min-height:82px;overflow:hidden;border-radius:12px;background:var(--signal,#b9e643);box-shadow:0 14px 36px rgba(0,0,0,.22);color:var(--signal-ink,#11130e);font-family:\"Manrope Variable\",Manrope,sans-serif}.ds-run-state{display:flex;min-width:0;align-items:center;gap:10px;padding:14px 16px}.ds-status-dot{width:16px;height:16px;flex:0 0 auto;border-radius:50%;background:currentColor}.ds-run-state strong,.ds-run-state small{display:block}.ds-run-state strong{font-size:12px;font-weight:800}.ds-run-state small{margin-top:4px;font-size:8px;font-weight:650;opacity:.72}.ds-primary-action{display:flex;align-items:center;justify-content:center;gap:12px;margin:13px 0;padding:0 16px;border:0;border-left:1px solid rgba(17,19,14,.28);outline:0;background:transparent;color:inherit;cursor:pointer}.ds-primary-action:hover{background:rgba(255,255,255,.12)}.ds-primary-action:focus-visible{outline:2px solid var(--signal-ink,#11130e);outline-offset:-4px}.ds-primary-action:active{background:rgba(255,255,255,.18)}.ds-primary-action svg{width:28px;height:28px;fill:currentColor}.ds-primary-action span{font-size:20px;font-weight:820;letter-spacing:-.025em}.ds-primary-action kbd{padding:3px 6px;border:1px solid rgba(17,19,14,.28);border-radius:5px;font:650 10px/1 \"Roboto Condensed Variable\",sans-serif}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Timing Console",
+    "overview": "Clickity feels like a small, purpose-built instrument brought forward only when a gaming session needs it. Matte carbon surrounds graphite controls, while warm white language and crisp steel annotations keep the interface readable without turning it into a dense desktop form.\n\nThe system puts timing first and treats chartreuse as an operational signal rather than decoration. Broad rails, condensed numerals, and a persistent run dock create a quick top-to-bottom path: set the cadence, choose behavior, confirm the target, and act. The result is modern and technical without borrowing the neon, glass, or dashboard conventions common to gaming utilities.",
+    "keyCharacteristics": [
+      "Matte, near-black tonal layering with restrained ambient depth.",
+      "One high-contrast chartreuse signal for selection, focus, capture, and run state.",
+      "Friendly Manrope interface language paired with compact Roboto Condensed instrument numerals.",
+      "Continuous timing fields, broad segmented rails, and a persistent action dock.",
+      "Compact, direct copy that keeps operating state visible."
+    ],
+    "rules": [
+      { "name": "The One Signal Rule", "body": "Chartreuse communicates an active or actionable state; keep it rare enough that selection and run state remain instantly legible.", "section": "colors" },
+      { "name": "The Matte Spectrum Rule", "body": "Build hierarchy from carbon and graphite layers, never from decorative gradients, glass, or saturated gamer lighting.", "section": "colors" },
+      { "name": "The Instrument Pairing Rule", "body": "Use Manrope for language and Roboto Condensed for values, coordinates, counts, and shortcuts; do not use the condensed face as a decorative display font.", "section": "typography" },
+      { "name": "The Continuous Rail Rule", "body": "Keep each task on one broad horizontal rail at desktop widths; use internal segmentation instead of scattering settings into unrelated cards.", "section": "layout" },
+      { "name": "The Tonal Lift Rule", "body": "Establish hierarchy with surface tone and one-pixel borders first; shadows remain soft, black, and subordinate.", "section": "elevation" },
+      { "name": "The Soft Containment Rule", "body": "Round containers enough to separate them from the carbon canvas, but preserve straight internal divisions so controls still read as instruments.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do reserve chartreuse for selections, focus, capture, and the primary operational dock.",
+      "Do keep timing and other numeric values in the condensed instrument face.",
+      "Do use tonal graphite layers and one-pixel borders before adding ambient shadow.",
+      "Do keep state copy visible beside the primary start/stop action.",
+      "Do preserve the stacked responsive behavior and reduced-motion fallback."
+    ],
+    "donts": [
+      "Don't imitate legacy autoclicker form stacks; settings belong in a short sequence of continuous rails.",
+      "Don't introduce neon gradients, glass panels, glows, or ornamental gamer-dashboard chrome.",
+      "Don't turn every surface into a floating card or every control into a pill.",
+      "Don't use chartreuse as decorative fill when it does not communicate state or action.",
+      "Don't separate timing values into unrelated boxed inputs; the continuous timing console is the signature component."
+    ]
+  }
+}

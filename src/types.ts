@@ -57,6 +57,11 @@ export interface CursorPosition {
   y: number;
 }
 
+export interface PositionCaptureResult {
+  position: CursorPosition | null;
+  error: string | null;
+}
+
 export interface ValidationErrors {
   interval?: string;
   repeat?: string;

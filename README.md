@@ -28,7 +28,7 @@ Clickity is a small, cross-platform desktop app built with Tauri 2, vanilla Type
 - **Any mouse button** — automate left, middle, or right clicks.
 - **Flexible repeat modes** — run for an exact count or until you stop it.
 - **Two targeting modes** — follow the live cursor or return to fixed X/Y coordinates for every click.
-- **Position capture** — start a three-second countdown, move the pointer, and save its coordinates.
+- **Position capture** — arm capture, move the pointer anywhere, and press `F7` to save its coordinates.
 - **Global control** — start or stop Clickity from any application with a configurable shortcut (`F6` by default).
 - **Persistent preferences** — restore your last configuration on launch while always starting safely in an idle state.
 - **Responsive cancellation** — stop immediately, even while waiting through a long interval.
@@ -67,10 +67,10 @@ If you prefer npm, replace the last two commands with `npm install` and `npm run
 
 1. Set how long Clickity should wait between clicks.
 2. Choose the mouse button and either a click count or **Until stopped**.
-3. Select **Follow cursor** or enter a **Fixed position**. Use **Capture** to record the pointer's coordinates after a three-second countdown.
+3. Select **Follow cursor** or **Fixed position**. For a fixed target, select **Capture**, move the pointer to the target, and press `F7` to record its coordinates.
 4. Select **Start clicking** or press the global shortcut. Press the shortcut again—or select **Stop clicking**—to stop.
 
-The first click occurs after one complete interval. Starting **Follow cursor** from the window adds a three-second countdown so you can move away from the Start button; starting with the global shortcut begins immediately.
+The first click occurs after one complete interval. Starting **Follow cursor** from the window adds a three-second countdown so you can move away from the Start button; starting with the global shortcut begins immediately. `F7` is reserved for position capture and cannot be assigned as the start/stop shortcut.
 
 ## Platform support
 
@@ -79,7 +79,7 @@ The first click occurs after one complete interval. Starting **Follow cursor** f
 | Windows | Supported | A normally launched app cannot click inside applications running as administrator. Mixed-DPI, multi-monitor setups should be verified manually. |
 | macOS | Supported | Grant Clickity **Accessibility** permission when macOS asks so it can synthesize mouse input. |
 | Linux (X11) | Supported | Clickity currently uses the X11 input backend. |
-| Linux (Wayland) | Experimental | Synthetic input and global shortcuts depend on the compositor; Clickity displays a compatibility warning. |
+| Linux (Wayland) | Supported | Compositors control global shortcuts and synthetic input; permission prompts and capability errors vary by desktop. |
 
 Very short intervals are best-effort on every platform. Operating-system scheduling means Clickity cannot provide hard real-time guarantees.
 

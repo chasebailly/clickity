@@ -1,3 +1,5 @@
+import "@fontsource-variable/manrope";
+import "@fontsource-variable/roboto-condensed";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -12,8 +14,8 @@ import {
 import type {
   ClickConfig,
   ClickitySettings,
-  CursorPosition,
   InitialState,
+  PositionCaptureResult,
   RuntimeSnapshot,
   ValidationErrors,
 } from "./types";
@@ -45,17 +47,14 @@ const statusPill = byId<HTMLElement>("status-pill");
 const statusLabel = byId<HTMLElement>("status-label");
 const intervalSummary = byId<HTMLElement>("interval-summary");
 const intervalError = byId<HTMLElement>("interval-error");
-const intervalWarning = byId<HTMLElement>("interval-warning");
 const repeatError = byId<HTMLElement>("repeat-error");
 const positionError = byId<HTMLElement>("position-error");
+const captureHelp = byId<HTMLElement>("capture-help");
 const hotkeyError = byId<HTMLElement>("hotkey-error");
 const hotkeyCaptureCopy = byId<HTMLElement>("hotkey-capture-copy");
 const runTitle = byId<HTMLElement>("run-title");
 const runDetail = byId<HTMLElement>("run-detail");
 const liveRegion = byId<HTMLElement>("live-region");
-const platformNotice = byId<HTMLElement>("platform-notice");
-const platformNoticeTitle = byId<HTMLElement>("platform-notice-title");
-const platformNoticeCopy = byId<HTMLElement>("platform-notice-copy");
 
 const settingControls = Array.from(
   document.querySelectorAll<HTMLInputElement | HTMLButtonElement>(
@@ -77,10 +76,12 @@ let startCountdownId: number | null = null;
 let countdownRemaining = 0;
 let countdownConfig: ClickConfig | null = null;
 let captureInProgress = false;
+let positionCaptureError = "";
 let hotkeyCaptureInProgress = false;
 let showValidation = false;
 let syncTimer: number | null = null;
 let unlistenRuntime: UnlistenFn | null = null;
+let unlistenPositionCapture: UnlistenFn | null = null;
 
 function selectedValue(name: string): string {
   return (
@@ -144,14 +145,10 @@ function hasErrors(errors: ValidationErrors): boolean {
 function renderValidation(errors: ValidationErrors): void {
   intervalError.textContent = showValidation ? (errors.interval ?? "") : "";
   repeatError.textContent = showValidation ? (errors.repeat ?? "") : "";
-  positionError.textContent = showValidation ? (errors.position ?? "") : "";
+  positionError.textContent =
+    positionCaptureError || (showValidation ? (errors.position ?? "") : "");
 
   const interval = intervalInMilliseconds(settings);
-  intervalWarning.textContent =
-    !errors.interval && interval > 0 && interval < 10
-      ? "Very short intervals are best-effort and may use more CPU."
-      : "";
-
   intervalSummary.textContent = errors.interval
     ? "Check interval"
     : `Every ${formatDuration(interval)}`;
@@ -176,12 +173,13 @@ function renderControlAvailability(): void {
   coordinateRow.dataset.visible = String(fixedMode);
   positionXInput.disabled = locked || !fixedMode;
   positionYInput.disabled = locked || !fixedMode;
-  capturePositionButton.disabled = locked || !fixedMode;
+  capturePositionButton.disabled = (locked && !captureInProgress) || !fixedMode;
 
   if (hotkeyCaptureInProgress) changeHotkeyButton.disabled = false;
 }
 
-function runtimePhase(): "idle" | "starting" | "running" | "error" {
+function runtimePhase(): "idle" | "starting" | "capturing" | "running" | "error" {
+  if (captureInProgress) return "capturing";
   return startCountdownId !== null ? "starting" : runtime.phase;
 }
 
@@ -191,6 +189,8 @@ function renderRuntime(): void {
   statusLabel.textContent =
     phase === "starting"
       ? "Starting"
+      : phase === "capturing"
+        ? "Capturing position"
       : phase === "running"
         ? "Running"
         : phase === "error"
@@ -199,8 +199,13 @@ function renderRuntime(): void {
 
   actionButton.classList.toggle("stop-button", phase === "running");
   actionButton.classList.toggle("cancel-button", phase === "starting");
+  actionButton.dataset.phase = phase;
 
-  if (phase === "starting") {
+  if (phase === "capturing") {
+    actionLabel.textContent = "Start clicking";
+    runTitle.textContent = "Position capture armed";
+    runDetail.textContent = "Move the pointer, then press F7.";
+  } else if (phase === "starting") {
     actionLabel.textContent = "Cancel start";
     runTitle.textContent = `Starting in ${countdownRemaining}…`;
     runDetail.textContent = "Move the pointer to where you want Clickity to begin.";
@@ -227,6 +232,16 @@ function renderRuntime(): void {
 
   hotkeyDisplay.textContent = hotkeyCaptureInProgress ? "…" : hotkeyLabel;
   actionHotkey.textContent = hotkeyLabel;
+  capturePositionButton.querySelector("span")!.textContent = captureInProgress
+    ? "Cancel capture"
+    : "Capture";
+  capturePositionButton.setAttribute(
+    "aria-pressed",
+    String(captureInProgress),
+  );
+  captureHelp.innerHTML = captureInProgress
+    ? "Capture armed. Move the pointer, then press <kbd>F7</kbd>."
+    : "Select Capture, move the pointer, then press <kbd>F7</kbd>.";
   const errors = validateSettings(settings);
   actionButton.disabled =
     captureInProgress ||
@@ -389,48 +404,122 @@ async function handleAction(): Promise<void> {
   }
 }
 
-function delay(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
-}
-
-async function capturePosition(): Promise<void> {
-  if (!isTauri) {
-    positionError.textContent = "Position capture is unavailable in browser preview mode.";
-    return;
+async function restoreAppWindow(): Promise<string | null> {
+  const appWindow = getCurrentWindow();
+  let visible = false;
+  try {
+    await appWindow.unminimize();
+    visible = true;
+  } catch {
+    // Continue: show() can still recover a window when unminimize is unsupported.
+  }
+  try {
+    await appWindow.show();
+    visible = true;
+  } catch {
+    // Report below if neither restoration path succeeded.
   }
 
-  captureInProgress = true;
-  capturePositionButton.querySelector("span")!.textContent = "Capturing…";
-  announce("Move the pointer to the target position. Capturing in 3 seconds.");
-  renderRuntime();
-  const appWindow = getCurrentWindow();
+  if (!visible) {
+    return "Clickity could not restore its window. Reopen it from the taskbar; the captured coordinates were saved.";
+  }
 
   try {
-    await appWindow.minimize();
-    await delay(3_000);
-    const position = await invoke<CursorPosition>("get_cursor_position");
-    positionXInput.value = String(position.x);
-    positionYInput.value = String(position.y);
+    await appWindow.setFocus();
+  } catch {
+    return "Clickity restored, but your desktop prevented it from taking focus. Select it from the taskbar; the captured coordinates were saved.";
+  }
+  return null;
+}
+
+async function finishPositionCapture(
+  result: PositionCaptureResult,
+): Promise<void> {
+  if (!captureInProgress) return;
+  captureInProgress = false;
+
+  let releaseError = "";
+  if (isTauri) {
+    try {
+      await invoke("cancel_position_capture");
+    } catch (error) {
+      releaseError = errorMessage(error);
+    }
+  }
+
+  if (result.position) {
+    positionXInput.value = String(result.position.x);
+    positionYInput.value = String(result.position.y);
+    positionCaptureError = "";
     settings = readForm();
     saveSettings(settings);
     queueConfigSync();
-    announce(`Position captured at X ${position.x}, Y ${position.y}.`);
-    positionError.textContent = "";
+    announce(
+      `Position captured at X ${result.position.x}, Y ${result.position.y}.`,
+    );
+  } else {
+    positionCaptureError = result.error ?? "The pointer position could not be captured.";
+    announce(positionCaptureError);
+  }
+
+  if (releaseError) {
+    positionCaptureError = positionCaptureError
+      ? `${positionCaptureError} ${releaseError}`
+      : releaseError;
+  }
+
+  const restorationError = await restoreAppWindow();
+  if (restorationError) {
+    positionCaptureError = positionCaptureError
+      ? `${positionCaptureError} ${restorationError}`
+      : restorationError;
+    announce(positionCaptureError);
+  }
+  renderAll();
+}
+
+async function beginPositionCapture(): Promise<void> {
+  if (!isTauri) {
+    positionCaptureError = "Position capture is unavailable in browser preview mode.";
+    renderAll();
+    return;
+  }
+
+  try {
+    positionCaptureError = "";
+    await invoke("begin_position_capture");
+    captureInProgress = true;
+    announce("Position capture armed. Move the pointer, then press F7.");
+    renderAll();
+    await getCurrentWindow().minimize();
   } catch (error) {
-    positionError.textContent = errorMessage(error);
-    announce(positionError.textContent);
-  } finally {
-    try {
-      await appWindow.unminimize();
-      await appWindow.show();
-      await appWindow.setFocus();
-    } catch {
-      // The window may already be visible on platforms without minimize support.
-    }
     captureInProgress = false;
-    capturePositionButton.querySelector("span")!.textContent = "Capture";
+    let releaseError = "";
+    try {
+      await invoke("cancel_position_capture");
+    } catch (cancelError) {
+      releaseError = ` ${errorMessage(cancelError)}`;
+    }
+    positionCaptureError = `${errorMessage(error)}${releaseError}`;
+    announce(positionCaptureError);
     renderAll();
   }
+}
+
+async function cancelPositionCapture(): Promise<void> {
+  if (!captureInProgress) return;
+  captureInProgress = false;
+  if (isTauri) {
+    try {
+      await invoke("cancel_position_capture");
+    } catch (error) {
+      positionCaptureError = errorMessage(error);
+    }
+  }
+  const restorationError = await restoreAppWindow();
+  if (restorationError) positionCaptureError = restorationError;
+  announce("Position capture cancelled.");
+  renderAll();
 }
 
 function displayForShortcut(accelerator: string): string {
@@ -498,6 +587,12 @@ async function handleHotkeyCapture(event: KeyboardEvent): Promise<void> {
   }
 
   const accelerator = [...modifiers, token].join("+");
+  if (accelerator === "F7") {
+    hotkeyError.textContent = "F7 is reserved for position capture.";
+    hotkeyCaptureCopy.textContent = "Press another shortcut · Esc to cancel";
+    announce(hotkeyError.textContent);
+    return;
+  }
   hotkeyCaptureCopy.textContent = "Registering shortcut…";
   try {
     if (!isTauri) throw new Error("Shortcuts are unavailable in browser preview mode.");
@@ -537,18 +632,8 @@ function endHotkeyCapture(): void {
   renderRuntime();
 }
 
-function showPlatformNotice(title: string, copy: string): void {
-  platformNoticeTitle.textContent = title;
-  platformNoticeCopy.textContent = copy;
-  platformNotice.hidden = false;
-}
-
 async function initializeNative(): Promise<void> {
   if (!isTauri) {
-    showPlatformNotice(
-      "Browser preview",
-      "The interface is active, but clicking, cursor capture, and global shortcuts require the desktop app.",
-    );
     renderAll();
     return;
   }
@@ -558,15 +643,12 @@ async function initializeNative(): Promise<void> {
       "runtime-state",
       (event) => applyRuntime(event.payload),
     );
+    unlistenPositionCapture = await listen<PositionCaptureResult>(
+      "position-capture-result",
+      (event) => void finishPositionCapture(event.payload),
+    );
     const initial = await invoke<InitialState>("get_initial_state");
     runtime = initial.runtime;
-
-    if (initial.platform.waylandWarning) {
-      showPlatformNotice(
-        "Wayland compatibility",
-        "Global shortcuts and synthetic clicks are experimental on Wayland. An X11 session is recommended.",
-      );
-    }
 
     try {
       await invoke("set_hotkey", { accelerator: hotkeyAccelerator });
@@ -617,8 +699,20 @@ form.addEventListener("focusout", (event) => {
 });
 
 capturePositionButton.addEventListener("click", () => {
-  void capturePosition();
+  if (captureInProgress) void cancelPositionCapture();
+  else void beginPositionCapture();
 });
+
+for (const button of document.querySelectorAll<HTMLButtonElement>(
+  "[data-step-target]",
+)) {
+  button.addEventListener("click", () => {
+    const input = byId<HTMLInputElement>(button.dataset.stepTarget ?? "");
+    if (button.dataset.step === "-1") input.stepDown();
+    else input.stepUp();
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
 
 changeHotkeyButton.addEventListener("click", () => {
   if (hotkeyCaptureInProgress) endHotkeyCapture();
@@ -627,6 +721,8 @@ changeHotkeyButton.addEventListener("click", () => {
 
 window.addEventListener("beforeunload", () => {
   if (unlistenRuntime) unlistenRuntime();
+  if (unlistenPositionCapture) unlistenPositionCapture();
+  if (captureInProgress && isTauri) void invoke("cancel_position_capture");
 });
 
 void initializeNative();

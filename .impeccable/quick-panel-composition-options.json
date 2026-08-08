@@ -1,0 +1,44 @@
+{
+  "title": "Choose the Quick Panel composition",
+  "question": "The visual world is fixed; choose which hierarchy should become Clickity’s production layout.",
+  "options": [
+    {
+      "id": "ready-first",
+      "label": "Ready First",
+      "kicker": "ACTION-LED",
+      "lineage": "Quick Panel — status-first composition",
+      "thesis": "The current state and Start action dominate, making Clickity feel immediate every time it opens.",
+      "palette": ["#17191d", "#25282e", "#f4f4f0", "#b9e44c", "#737983"],
+      "materials": ["layered overlay tray", "broad selection rails", "matte surfaces"],
+      "viewport": "A commanding ready panel owns the top third; settings follow as broad rows with contextual coordinates.",
+      "risk": "The main action is exceptionally clear, but the interval details become one step less visible.",
+      "hero": ".impeccable/mocks/quick-panel-ready-first.webp"
+    },
+    {
+      "id": "interval-first",
+      "label": "Interval First",
+      "kicker": "TIMING-LED",
+      "lineage": "Quick Panel — timing-strip composition",
+      "thesis": "The four-part interval becomes Clickity’s signature control while the action remains fixed at the bottom.",
+      "palette": ["#17191d", "#25282e", "#f4f4f0", "#b9e44c", "#737983"],
+      "materials": ["continuous timing strip", "chunky segmented controls", "matte action dock"],
+      "viewport": "A continuous hours-to-milliseconds strip leads, followed by three compact mode rows and a sticky action dock.",
+      "risk": "This is fastest for precise setup, but gives runtime status less visual space than Ready First.",
+      "hero": ".impeccable/mocks/quick-panel-interval-first.webp"
+    },
+    {
+      "id": "balanced-split",
+      "label": "Balanced Split",
+      "kicker": "OVERVIEW-LED",
+      "lineage": "Quick Panel — two-column composition",
+      "thesis": "Timing and behavior stay visible together, creating the clearest overview of the complete configuration.",
+      "palette": ["#17191d", "#25282e", "#f4f4f0", "#b9e44c", "#737983"],
+      "materials": ["paired control fields", "contextual bridge tray", "matte action bar"],
+      "viewport": "A wider timing column and narrower behavior column share the window above a contextual coordinate tray and full-width action.",
+      "risk": "It exposes the most information, but has the densest visual rhythm of the three.",
+      "hero": ".impeccable/mocks/quick-panel-balanced.webp"
+    }
+  ],
+  "reroll": true,
+  "steer": true
+}

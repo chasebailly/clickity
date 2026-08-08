@@ -1,0 +1,77 @@
+{
+  "title": "Choose Clickity’s visual world",
+  "question": "Choose the world that should make Clickity feel modern, fast, and at home beside a game.",
+  "options": [
+    {
+      "id": "frame-trace",
+      "label": "Frame Trace",
+      "kicker": "PROPOSED DIRECTION",
+      "lineage": "game replay timelines and frame debuggers",
+      "thesis": "Every click becomes a visible timing event on a precise frame trace, so setup and runtime state read in one glance.",
+      "palette": ["#121820", "#26313d", "#eef2f3", "#ff6b4a", "#42c7b8"],
+      "materials": ["matte debug canvas", "tick-mark rails", "solid keylines"],
+      "viewport": "A wide timing rail commands the upper third, four compact time fields sit directly on its ticks, and a coral start control anchors the lower edge beside a live click trace.",
+      "risk": "It can feel like a developer tool if the time ruler overwhelms the plain-language labels.",
+      "sketch": ".impeccable/sketches/frame-trace.webp"
+    },
+    {
+      "id": "teletext-service",
+      "label": "Page 006",
+      "kicker": "CHALLENGER",
+      "lineage": "broadcast teletext service pages",
+      "thesis": "Clickity becomes a direct-access control page where timing, target, and run state occupy a strict broadcast grid.",
+      "palette": ["#050505", "#f3f3f3", "#ffe14a", "#37d8ff", "#ff4b4b"],
+      "materials": ["bitmap cells", "flat broadcast color", "hard-edged mosaic blocks"],
+      "viewport": "A three-digit page header leads into double-height interval figures, compact mode rows, and a bottom command strip with START and STOP states.",
+      "risk": "Its gaming recognition and numeric clarity are strong, but it may read as deliberately retro rather than distinctly modern.",
+      "case": "Audience identification: strong for retro-aware players. Product clarity: strong for numbers and state, weaker for comfortable form entry.",
+      "sketch": ".impeccable/sketches/teletext-service.webp",
+      "hero": "https://impeccable.style/worlds/cards/broadcast-programming-teletext-service-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/broadcast-programming-teletext-service.webp"
+    },
+    {
+      "id": "viewfinder-lock",
+      "label": "Lock Frame",
+      "kicker": "CHALLENGER",
+      "lineage": "camcorder viewfinder controls",
+      "thesis": "The target and click interval sit inside a focus frame that visibly locks when a run begins.",
+      "palette": ["#090b0d", "#f5f6f3", "#ffbd45", "#7f8992"],
+      "materials": ["segmented OSD ink", "focus brackets", "zebra caution stripes"],
+      "viewport": "A large central focus bracket holds the interval, settings occupy the safe-area corners, and an amber W-to-T rail becomes the run-progress control.",
+      "risk": "The HUD feels native to games, but the camera metaphor can make ordinary click settings less immediately obvious.",
+      "case": "Audience identification: strongest of the challengers. Product clarity: moderate because the framing metaphor competes with familiar controls.",
+      "sketch": ".impeccable/sketches/viewfinder-lock.webp",
+      "hero": "https://impeccable.style/worlds/cards/pop-culture-shelf-viewfinder-bracket-hud-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/pop-culture-shelf-viewfinder-bracket-hud.webp"
+    },
+    {
+      "id": "axis-console",
+      "label": "Axis Console",
+      "kicker": "CHALLENGER",
+      "lineage": "interactive variable-type specimens",
+      "thesis": "One monumental interval readout changes live while compact control axes tune the click behavior below it.",
+      "palette": ["#f3f2ed", "#131313", "#3457e5", "#c8c6bd"],
+      "materials": ["near-white stock", "oversized numerals", "precision slider tracks"],
+      "viewport": "The current interval fills half the window as expressive numerals, with timing axes below and a single cobalt run control completing the composition.",
+      "risk": "Its product clarity is excellent, but its foundry-like character has the weakest connection to gaming culture.",
+      "case": "Audience identification: low. Product clarity: highest challenger score through scale, live values, and direct manipulation.",
+      "sketch": ".impeccable/sketches/axis-console.webp",
+      "hero": "https://impeccable.style/worlds/cards/variable-font-specimen-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/variable-font-specimen.webp"
+    }
+  ],
+  "reroll": true,
+  "canon": true,
+  "canonCard": {
+    "label": "Modern Utility Panel",
+    "kicker": "THE CATEGORY STANDARD",
+    "lineage": "polished contemporary desktop utility",
+    "thesis": "A familiar card-based settings panel makes every control effortless to find and the primary action unmistakable.",
+    "palette": ["#11151b", "#1d232d", "#f2f4f6", "#5c7cfa", "#77808c"],
+    "materials": ["soft panels", "restrained elevation", "rounded segmented controls"],
+    "viewport": "A compact header and status pill lead into clean timing, click, and target cards, ending with a full-width blue start button.",
+    "risk": "It would be polished and easy to use, but could remain visually interchangeable with many unrelated desktop utilities.",
+    "sketch": ".impeccable/sketches/canon-modern-utility.webp"
+  },
+  "steer": true
+}
