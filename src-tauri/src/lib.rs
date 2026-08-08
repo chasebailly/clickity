@@ -9,9 +9,10 @@ use std::sync::{
     Mutex,
 };
 use tauri::{AppHandle, Emitter, Manager, State, WindowEvent};
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, ShortcutState};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
-const CAPTURE_SHORTCUT: &str = "F7";
+const DEFAULT_RUN_SHORTCUT: &str = "F6";
+const DEFAULT_CAPTURE_SHORTCUT: &str = "F7";
 const POSITION_CAPTURE_EVENT: &str = "position-capture-result";
 
 struct AppState {
@@ -20,8 +21,9 @@ struct AppState {
     hotkey_registered: AtomicBool,
     hotkey_error: Mutex<Option<String>>,
     hotkey_down: AtomicBool,
-    capture_active: AtomicBool,
+    capture_hotkey: Mutex<String>,
     capture_hotkey_registered: AtomicBool,
+    capture_hotkey_error: Mutex<Option<String>>,
     capture_hotkey_down: AtomicBool,
 }
 
@@ -29,15 +31,60 @@ impl Default for AppState {
     fn default() -> Self {
         Self {
             engine: ClickEngine::default(),
-            hotkey: Mutex::new("F6".into()),
+            hotkey: Mutex::new(DEFAULT_RUN_SHORTCUT.into()),
             hotkey_registered: AtomicBool::new(false),
             hotkey_error: Mutex::new(None),
             hotkey_down: AtomicBool::new(false),
-            capture_active: AtomicBool::new(false),
+            capture_hotkey: Mutex::new(DEFAULT_CAPTURE_SHORTCUT.into()),
             capture_hotkey_registered: AtomicBool::new(false),
+            capture_hotkey_error: Mutex::new(None),
             capture_hotkey_down: AtomicBool::new(false),
         }
     }
+}
+
+/// Two accelerators collide when they parse to the same key combination.
+fn shortcuts_conflict(left: &str, right: &str) -> bool {
+    match (left.parse::<Shortcut>(), right.parse::<Shortcut>()) {
+        (Ok(left), Ok(right)) => left == right,
+        _ => left.eq_ignore_ascii_case(right),
+    }
+}
+
+/// Registers `accelerator` for one binding, releasing whatever it held before.
+fn rebind_shortcut(
+    app: &AppHandle,
+    accelerator: &str,
+    slot: &Mutex<String>,
+    registered: &AtomicBool,
+) -> Result<(), String> {
+    let mut current = slot.lock().map_err(|_| "Shortcut state is unavailable")?;
+    let already_registered = registered.load(Ordering::Relaxed);
+
+    if already_registered && current.as_str() == accelerator {
+        return Ok(());
+    }
+
+    app.global_shortcut()
+        .register(accelerator)
+        .map_err(|error| format!("That shortcut could not be registered: {error}"))?;
+
+    if already_registered {
+        if let Err(error) = app.global_shortcut().unregister(current.as_str()) {
+            let _ = app.global_shortcut().unregister(accelerator);
+            return Err(format!("Could not replace the existing shortcut: {error}"));
+        }
+    }
+
+    *current = accelerator.to_string();
+    registered.store(true, Ordering::Relaxed);
+    Ok(())
+}
+
+/// Reads one accelerator without holding its lock, so the two setters cannot deadlock.
+fn read_accelerator(slot: &Mutex<String>) -> Result<String, String> {
+    let guard = slot.lock().map_err(|_| "Shortcut state is unavailable")?;
+    Ok(guard.clone())
 }
 
 #[derive(Clone, Serialize)]
@@ -54,6 +101,8 @@ struct InitialState {
     hotkey: String,
     hotkey_registered: bool,
     hotkey_error: Option<String>,
+    capture_hotkey: String,
+    capture_hotkey_error: Option<String>,
     platform: PlatformInfo,
 }
 
@@ -65,10 +114,20 @@ fn get_initial_state(state: State<'_, AppState>) -> InitialState {
             .hotkey
             .lock()
             .map(|hotkey| hotkey.clone())
-            .unwrap_or_else(|_| "F6".into()),
+            .unwrap_or_else(|_| DEFAULT_RUN_SHORTCUT.into()),
         hotkey_registered: state.hotkey_registered.load(Ordering::Relaxed),
         hotkey_error: state
             .hotkey_error
+            .lock()
+            .ok()
+            .and_then(|error| error.clone()),
+        capture_hotkey: state
+            .capture_hotkey
+            .lock()
+            .map(|hotkey| hotkey.clone())
+            .unwrap_or_else(|_| DEFAULT_CAPTURE_SHORTCUT.into()),
+        capture_hotkey_error: state
+            .capture_hotkey_error
             .lock()
             .ok()
             .and_then(|error| error.clone()),
@@ -87,9 +146,6 @@ fn start_clicking(
     config: ClickConfig,
     state: State<'_, AppState>,
 ) -> Result<RuntimeSnapshot, String> {
-    if state.capture_active.load(Ordering::Relaxed) {
-        return Err("Finish or cancel position capture before starting Clickity.".into());
-    }
     state.engine.update_config(config)?;
     state.engine.start(app)
 }
@@ -97,41 +153,6 @@ fn start_clicking(
 #[tauri::command]
 fn stop_clicking(app: AppHandle, state: State<'_, AppState>) -> RuntimeSnapshot {
     state.engine.stop(&app)
-}
-
-#[tauri::command]
-fn begin_position_capture(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    if state.engine.is_running() {
-        return Err("Stop Clickity before capturing a position.".into());
-    }
-
-    if !state.capture_hotkey_registered.load(Ordering::Relaxed) {
-        app.global_shortcut()
-            .register(CAPTURE_SHORTCUT)
-            .map_err(|error| format!("F7 could not be registered for position capture: {error}"))?;
-        state
-            .capture_hotkey_registered
-            .store(true, Ordering::Relaxed);
-    }
-
-    state.capture_hotkey_down.store(false, Ordering::Relaxed);
-    state.capture_active.store(true, Ordering::Relaxed);
-    Ok(())
-}
-
-#[tauri::command]
-fn cancel_position_capture(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
-    state.capture_active.store(false, Ordering::Relaxed);
-    state.capture_hotkey_down.store(false, Ordering::Relaxed);
-    if state.capture_hotkey_registered.load(Ordering::Relaxed) {
-        app.global_shortcut()
-            .unregister(CAPTURE_SHORTCUT)
-            .map_err(|error| format!("F7 could not be released after position capture: {error}"))?;
-        state
-            .capture_hotkey_registered
-            .store(false, Ordering::Relaxed);
-    }
-    Ok(())
 }
 
 #[tauri::command]
@@ -144,34 +165,42 @@ fn set_hotkey(
     if accelerator.is_empty() {
         return Err("Choose a keyboard shortcut.".into());
     }
-    if accelerator.eq_ignore_ascii_case(CAPTURE_SHORTCUT) {
-        return Err("F7 is reserved for position capture.".into());
+
+    let capture = read_accelerator(&state.capture_hotkey)?;
+    if shortcuts_conflict(accelerator, &capture) {
+        return Err(format!("{capture} is already used for position capture."));
     }
 
-    let mut current = state
-        .hotkey
-        .lock()
-        .map_err(|_| "Shortcut state is unavailable")?;
-    let already_registered = state.hotkey_registered.load(Ordering::Relaxed);
-
-    if already_registered && current.as_str() == accelerator {
-        return Ok(());
-    }
-
-    app.global_shortcut()
-        .register(accelerator)
-        .map_err(|error| format!("That shortcut could not be registered: {error}"))?;
-
-    if already_registered {
-        if let Err(error) = app.global_shortcut().unregister(current.as_str()) {
-            let _ = app.global_shortcut().unregister(accelerator);
-            return Err(format!("Could not replace the existing shortcut: {error}"));
-        }
-    }
-
-    *current = accelerator.to_string();
-    state.hotkey_registered.store(true, Ordering::Relaxed);
+    rebind_shortcut(&app, accelerator, &state.hotkey, &state.hotkey_registered)?;
     if let Ok(mut error) = state.hotkey_error.lock() {
+        *error = None;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn set_capture_hotkey(
+    app: AppHandle,
+    accelerator: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let accelerator = accelerator.trim();
+    if accelerator.is_empty() {
+        return Err("Choose a keyboard shortcut.".into());
+    }
+
+    let run = read_accelerator(&state.hotkey)?;
+    if shortcuts_conflict(accelerator, &run) {
+        return Err(format!("{run} is already used to start and stop clicking."));
+    }
+
+    rebind_shortcut(
+        &app,
+        accelerator,
+        &state.capture_hotkey,
+        &state.capture_hotkey_registered,
+    )?;
+    if let Ok(mut error) = state.capture_hotkey_error.lock() {
         *error = None;
     }
     Ok(())
@@ -186,14 +215,22 @@ pub fn run() {
                 .with_handler(|app, shortcut, event| {
                     let state = app.state::<AppState>();
 
-                    if shortcut.matches(Modifiers::empty(), Code::F7) {
+                    // The capture shortcut stays registered for the whole session:
+                    // pressing it captures the pointer immediately, with no arming step.
+                    let is_capture = state
+                        .capture_hotkey
+                        .lock()
+                        .ok()
+                        .and_then(|value| value.parse::<Shortcut>().ok())
+                        .is_some_and(|parsed| parsed == *shortcut);
+
+                    if is_capture {
                         match event.state() {
                             ShortcutState::Pressed => {
                                 let first_press =
                                     !state.capture_hotkey_down.swap(true, Ordering::Relaxed);
-                                if first_press
-                                    && state.capture_active.swap(false, Ordering::Relaxed)
-                                {
+                                // Settings are locked mid-run, so ignore capture then.
+                                if first_press && !state.engine.is_running() {
                                     let result = SystemMouse::new().and_then(|mouse| {
                                         mouse.location().map(|(x, y)| CursorPosition { x, y })
                                     });
@@ -217,13 +254,6 @@ pub fn run() {
                         return;
                     }
 
-                    if state.capture_active.load(Ordering::Relaxed) {
-                        if event.state() == ShortcutState::Released {
-                            state.hotkey_down.store(false, Ordering::Relaxed);
-                        }
-                        return;
-                    }
-
                     match event.state() {
                         ShortcutState::Pressed => {
                             if !state.hotkey_down.swap(true, Ordering::Relaxed) {
@@ -239,12 +269,25 @@ pub fn run() {
         )
         .setup(|app| {
             let state = app.state::<AppState>();
-            match app.global_shortcut().register("F6") {
+            match app.global_shortcut().register(DEFAULT_RUN_SHORTCUT) {
                 Ok(()) => state.hotkey_registered.store(true, Ordering::Relaxed),
                 Err(error) => {
                     if let Ok(mut stored_error) = state.hotkey_error.lock() {
                         *stored_error = Some(format!(
-                            "F6 could not be registered. Choose another shortcut: {error}"
+                            "{DEFAULT_RUN_SHORTCUT} could not be registered. Choose another shortcut: {error}"
+                        ));
+                    }
+                }
+            }
+
+            match app.global_shortcut().register(DEFAULT_CAPTURE_SHORTCUT) {
+                Ok(()) => state
+                    .capture_hotkey_registered
+                    .store(true, Ordering::Relaxed),
+                Err(error) => {
+                    if let Ok(mut stored_error) = state.capture_hotkey_error.lock() {
+                        *stored_error = Some(format!(
+                            "{DEFAULT_CAPTURE_SHORTCUT} could not be registered. Choose another shortcut: {error}"
                         ));
                     }
                 }
@@ -254,7 +297,6 @@ pub fn run() {
         .on_window_event(|window, event| {
             if matches!(event, WindowEvent::Destroyed) {
                 let state = window.state::<AppState>();
-                state.capture_active.store(false, Ordering::Relaxed);
                 state.engine.stop(window.app_handle());
             }
         })
@@ -263,9 +305,8 @@ pub fn run() {
             update_config,
             start_clicking,
             stop_clicking,
-            begin_position_capture,
-            cancel_position_capture,
             set_hotkey,
+            set_capture_hotkey,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Clickity");

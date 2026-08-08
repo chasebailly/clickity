@@ -28,8 +28,9 @@ Clickity is a small, cross-platform desktop app built with Tauri 2, vanilla Type
 - **Any mouse button** — automate left, middle, or right clicks.
 - **Flexible repeat modes** — run for an exact count or until you stop it.
 - **Two targeting modes** — follow the live cursor or return to fixed X/Y coordinates for every click.
-- **Position capture** — arm capture, move the pointer anywhere, and press `F7` to save its coordinates.
+- **Position capture** — move the pointer anywhere and press `F7` (rebindable) at any time to save its coordinates.
 - **Global control** — start or stop Clickity from any application with a configurable shortcut (`F6` by default).
+- **Rebindable shortcuts** — change the start/stop and position-capture shortcuts from the settings dialog in the title bar.
 - **Persistent preferences** — restore your last configuration on launch while always starting safely in an idle state.
 - **Responsive cancellation** — stop immediately, even while waiting through a long interval.
 - **Clear feedback** — see inline validation, live click progress, platform notices, and native errors.
@@ -67,10 +68,10 @@ If you prefer npm, replace the last two commands with `npm install` and `npm run
 
 1. Set how long Clickity should wait between clicks.
 2. Choose the mouse button and either a click count or **Until stopped**.
-3. Select **Follow cursor** or **Fixed position**. For a fixed target, select **Capture**, move the pointer to the target, and press `F7` to record its coordinates.
+3. Select **Follow cursor** or **Fixed position**. For a fixed target, move the pointer to the target and press `F7` to record its coordinates.
 4. Select **Start clicking** or press the global shortcut. Press the shortcut again—or select **Stop clicking**—to stop.
 
-The first click occurs after one complete interval. Starting **Follow cursor** from the window adds a three-second countdown so you can move away from the Start button; starting with the global shortcut begins immediately. `F7` is reserved for position capture and cannot be assigned as the start/stop shortcut.
+The first click occurs after one complete interval. Starting **Follow cursor** from the window adds a three-second countdown so you can move away from the Start button; starting with the global shortcut begins immediately. The capture shortcut stays registered for the whole session. Both shortcuts are rebindable from the settings dialog, and neither can be assigned the other's combination. Capture is ignored while a click run is active, since the settings are locked then.
 
 ## Platform support
 

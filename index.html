@@ -19,20 +19,32 @@
       FORM: User-approved Quick Panel, Timing-led / Interval First composition; seed 6ff3fdb2.
       FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
     -->
-    <div class="app-shell">
-      <header class="app-header">
-        <div class="brand">
-          <img class="brand-mark" src="/src/assets/clickity-mark.svg" alt="" width="56" height="56" />
-          <div>
-            <h1>Clickity</h1>
-            <p>Clicks, right on cue.</p>
-          </div>
+    <div class="window-surface">
+      <header class="titlebar" id="titlebar" data-tauri-drag-region>
+      <div class="titlebar-brand" data-tauri-drag-region>
+        <img class="titlebar-mark" src="/src/assets/clickity-mark.svg" alt="" width="20" height="20" />
+        <h1>Clickity</h1>
+      </div>
+      <div class="window-controls">
+        <button id="open-settings" class="window-control settings-toggle" type="button" aria-label="Settings" aria-haspopup="dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-2.87 1.2v.17a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0-1.2-2.87H2.8a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.08A1.7 1.7 0 0 0 10.07 3v-.17a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.08a1.7 1.7 0 0 0 1.55 1.03h.17a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" /></svg>
+        </button>
+        <button id="window-minimize" class="window-control" type="button" aria-label="Minimize">
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6h7" /></svg>
+        </button>
+        <button id="window-maximize" class="window-control" type="button" aria-label="Maximize">
+          <svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2.75" y="2.75" width="6.5" height="6.5" rx="1" /></svg>
+        </button>
+        <button id="window-close" class="window-control window-control-close" type="button" aria-label="Close">
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="m3.25 3.25 5.5 5.5m0-5.5-5.5 5.5" /></svg>
+        </button>
         </div>
       </header>
 
+      <div class="app-shell" id="app-shell">
       <form id="click-form" novalidate>
         <section class="interval-panel" aria-labelledby="interval-heading">
-          <h2 id="interval-heading">Click interval</h2>
+          <h2 class="sr-only" id="interval-heading">Click interval</h2>
           <div class="interval-console">
             <div class="interval-grid" aria-describedby="interval-error">
               <label class="number-field">
@@ -84,7 +96,7 @@
         <fieldset class="control-row mouse-row">
           <legend>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v6a6 6 0 0 0 12 0V9a6 6 0 0 0-6-6Zm0 0v7" /></svg>
-            <span>Mouse button</span>
+            <span class="sr-only">Mouse button</span>
           </legend>
           <div class="control-body">
             <div class="segmented-control three-up">
@@ -98,7 +110,7 @@
         <fieldset class="control-row repeat-row">
           <legend>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 2.5 20.5 6 17 9.5M4 11V9a3 3 0 0 1 3-3h13M7 21.5 3.5 18 7 14.5M20 13v2a3 3 0 0 1-3 3H4" /></svg>
-            <span>Repeat</span>
+            <span class="sr-only">Repeat</span>
           </legend>
           <div class="control-body repeat-controls">
             <div class="segmented-control two-up">
@@ -116,7 +128,7 @@
         <fieldset class="control-row position-row">
           <legend>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v3m0 14v3M2 12h3m14 0h3M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0Z" /></svg>
-            <span>Cursor position</span>
+            <span class="sr-only">Cursor position</span>
           </legend>
           <div class="control-body">
             <div class="position-controls">
@@ -124,33 +136,15 @@
                 <label><input data-setting type="radio" name="position-mode" value="current" checked /><span>Follow cursor</span></label>
                 <label><input data-setting type="radio" name="position-mode" value="fixed" /><span>Fixed position</span></label>
               </div>
-              <button class="capture-button" id="capture-position" data-setting type="button" aria-describedby="capture-help position-error">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v3m0 14v3M2 12h3m14 0h3M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0Z" /></svg>
-                <span>Capture</span>
-                <kbd>F7</kbd>
-              </button>
             </div>
             <div class="coordinate-row" id="coordinate-row" aria-describedby="position-error">
-              <p id="capture-help">Select Capture, move the pointer, then press <kbd>F7</kbd>.</p>
+              <p id="capture-help">Move the pointer anywhere, then press <kbd>F7</kbd> to capture it.</p>
               <label class="coordinate-field"><span>X</span><input id="position-x" data-setting type="number" inputmode="numeric" step="1" value="0" /></label>
               <label class="coordinate-field"><span>Y</span><input id="position-y" data-setting type="number" inputmode="numeric" step="1" value="0" /></label>
             </div>
             <p class="field-message error-text" id="position-error" role="alert"></p>
           </div>
         </fieldset>
-
-        <section class="hotkey-row" aria-labelledby="hotkey-heading">
-          <div class="row-label">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h16v11H4zM7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M7 13h.01M10.5 13h.01M14 13h3.5M7 15.5h7" /></svg>
-            <div><h2 id="hotkey-heading">Start / stop shortcut</h2><p>Works while Clickity is in the background.</p></div>
-          </div>
-          <div class="hotkey-control">
-            <kbd id="hotkey-display">F6</kbd>
-            <button class="secondary-button" id="change-hotkey" data-setting type="button">Change</button>
-          </div>
-          <p class="hotkey-capture-copy" id="hotkey-capture-copy" aria-live="polite"></p>
-          <p class="field-message error-text" id="hotkey-error" role="alert"></p>
-        </section>
 
         <div class="action-area">
           <div class="run-state" id="status-pill" data-phase="idle">
@@ -169,7 +163,52 @@
         </div>
       </form>
 
-      <div class="sr-only" id="live-region" aria-live="polite" aria-atomic="true"></div>
+        <div class="sr-only" id="live-region" aria-live="polite" aria-atomic="true"></div>
+      </div>
     </div>
+
+    <div class="resize-handles" aria-hidden="true">
+      <div class="resize-edge resize-n" data-resize="North"></div>
+      <div class="resize-edge resize-s" data-resize="South"></div>
+      <div class="resize-edge resize-w" data-resize="West"></div>
+      <div class="resize-edge resize-e" data-resize="East"></div>
+      <div class="resize-corner resize-nw" data-resize="NorthWest"></div>
+      <div class="resize-corner resize-ne" data-resize="NorthEast"></div>
+      <div class="resize-corner resize-sw" data-resize="SouthWest"></div>
+      <div class="resize-corner resize-se" data-resize="SouthEast"></div>
+    </div>
+
+    <dialog class="settings-dialog" id="settings-dialog" aria-labelledby="settings-title">
+      <header class="settings-header">
+        <h2 id="settings-title">Settings</h2>
+        <button class="settings-close" id="close-settings" type="button" aria-label="Close settings">
+          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="m3.25 3.25 5.5 5.5m0-5.5-5.5 5.5" /></svg>
+        </button>
+      </header>
+
+      <section class="hotkey-row" aria-labelledby="hotkey-heading">
+        <div class="row-label">
+          <div><h3 id="hotkey-heading">Start / stop shortcut</h3><p>Works while Clickity is in the background.</p></div>
+        </div>
+        <div class="hotkey-control">
+          <kbd id="hotkey-display">F6</kbd>
+          <button class="secondary-button" id="change-hotkey" type="button">Change</button>
+        </div>
+        <p class="hotkey-capture-copy" id="hotkey-capture-copy" aria-live="polite"></p>
+        <p class="field-message error-text" id="hotkey-error" role="alert"></p>
+      </section>
+
+      <section class="hotkey-row" aria-labelledby="capture-hotkey-heading">
+        <div class="row-label">
+          <div><h3 id="capture-hotkey-heading">Capture position shortcut</h3><p>Saves the pointer coordinates from anywhere.</p></div>
+        </div>
+        <div class="hotkey-control">
+          <kbd id="capture-hotkey-display">F7</kbd>
+          <button class="secondary-button" id="change-capture-hotkey" type="button">Change</button>
+        </div>
+        <p class="hotkey-capture-copy" id="capture-hotkey-capture-copy" aria-live="polite"></p>
+        <p class="field-message error-text" id="capture-hotkey-error" role="alert"></p>
+      </section>
+    </dialog>
   </body>
 </html>

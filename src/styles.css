@@ -16,7 +16,11 @@
   --signal-ink: #11130e;
   --danger: #ff827d;
   --warning: #f0bd68;
-  background: var(--ink);
+  --titlebar-height: 38px;
+  --resize-thickness: 5px;
+  --resize-corner: 12px;
+  --window-radius: 12px;
+  background: transparent;
   color: var(--text);
 }
 
@@ -24,10 +28,13 @@
   box-sizing: border-box;
 }
 
+/* The window is transparent so its corners can be rounded, which means html and
+   body must stay transparent too: a background on either is propagated to the
+   canvas and painted over the whole rect, squaring the corners off again. */
 html {
   min-width: 320px;
   min-height: 100%;
-  background: var(--ink);
+  background: transparent;
 }
 
 body {
@@ -35,6 +42,12 @@ body {
   min-height: 100vh;
   margin: 0;
   overflow-x: hidden;
+  background: transparent;
+}
+
+.window-surface {
+  min-height: 100vh;
+  border-radius: var(--window-radius);
   background: var(--ink);
 }
 
@@ -57,30 +70,11 @@ button {
   display: none !important;
 }
 
+/* No min-height: the shell's natural height is what the window is sized to. */
 .app-shell {
   width: min(100%, 680px);
-  min-height: 100vh;
   margin: 0 auto;
-  padding: 26px 28px 24px;
-}
-
-.app-header {
-  display: flex;
-  align-items: center;
-  min-height: 58px;
-  margin-bottom: 22px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.brand-mark {
-  width: 52px;
-  height: 52px;
-  flex: 0 0 auto;
+  padding: 18px;
 }
 
 h1,
@@ -89,37 +83,237 @@ p {
   margin: 0;
 }
 
-.brand h1 {
-  font-size: 34px;
-  font-weight: 780;
-  letter-spacing: -0.045em;
-  line-height: 0.98;
+.titlebar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--titlebar-height);
+  padding-left: 14px;
+  border-bottom: 1px solid var(--line-soft);
+  border-radius: var(--window-radius) var(--window-radius) 0 0;
+  background: var(--ink);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.brand p {
-  margin-top: 5px;
+.titlebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  pointer-events: none;
+}
+
+.titlebar-mark {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.titlebar-brand h1 {
+  font-size: 14px;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+}
+
+.window-controls {
+  display: flex;
+  align-self: stretch;
+}
+
+.window-control {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  cursor: default;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.window-control svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.3;
+}
+
+.window-control:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.window-control:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: -2px;
+}
+
+/* Keeps the close button's hover fill inside the rounded top-right corner. */
+.window-controls > .window-control:last-child {
+  border-top-right-radius: var(--window-radius);
+}
+
+.window-control-close:hover {
+  background: var(--danger);
+  color: var(--signal-ink);
+}
+
+.settings-toggle {
+  cursor: pointer;
+}
+
+.settings-toggle svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.settings-dialog {
+  width: min(92vw, 430px);
+  padding: 16px 18px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin: auto;
+  background: var(--surface);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.45);
+  color: var(--text);
+}
+
+.settings-dialog::backdrop {
+  background: rgba(8, 9, 10, 0.62);
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.settings-header h2 {
+  font-size: 16px;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+}
+
+.settings-close {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.settings-close svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.4;
+}
+
+.settings-close:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+/* These two carry no focus ring by request; the hover tint is the only cue. */
+.window-control.settings-toggle:focus-visible,
+.settings-close:focus-visible {
+  outline: none;
+}
+
+.settings-dialog .hotkey-row + .hotkey-row {
+  margin-top: 10px;
+}
+
+/* Replaces the compositor resize borders lost with decorations: false. */
+.resize-handles > * {
+  position: fixed;
+  z-index: 30;
+}
+
+.resize-n,
+.resize-s {
+  left: var(--resize-thickness);
+  right: var(--resize-thickness);
+  height: var(--resize-thickness);
+  cursor: ns-resize;
+}
+
+.resize-w,
+.resize-e {
+  top: var(--resize-thickness);
+  bottom: var(--resize-thickness);
+  width: var(--resize-thickness);
+  cursor: ew-resize;
+}
+
+.resize-n {
+  top: 0;
+}
+.resize-s {
+  bottom: 0;
+}
+.resize-w {
+  left: 0;
+}
+.resize-e {
+  right: 0;
+}
+
+.resize-corner {
+  width: var(--resize-corner);
+  height: var(--resize-corner);
+}
+
+.resize-nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+.resize-ne {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+.resize-sw {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+.resize-se {
+  bottom: 0;
+  right: 0;
+  cursor: nwse-resize;
 }
 
 #click-form {
   display: flex;
-  min-height: calc(100vh - 130px);
   flex-direction: column;
   gap: 14px;
 }
 
-.interval-panel h2,
-.hotkey-row h2 {
+.hotkey-row h3 {
+  margin: 0;
   font-size: 14px;
   font-weight: 740;
   letter-spacing: -0.015em;
-}
-
-.interval-panel h2 {
-  margin: 0 0 9px 1px;
 }
 
 .interval-console {
@@ -249,9 +443,10 @@ p {
   color: var(--text);
 }
 
+/* Row labels are screen-reader-only, so the controls take the full width. */
 .control-row {
   display: grid;
-  grid-template-columns: 126px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   min-width: 0;
   margin: 0;
@@ -268,16 +463,9 @@ p {
   display: none;
 }
 
-.control-row legend > span {
-  grid-column: 1;
-  font-size: 13px;
-  font-weight: 720;
-  letter-spacing: -0.015em;
-}
-
 .control-body {
   min-width: 0;
-  grid-column: 2;
+  grid-column: 1;
 }
 
 .segmented-control {
@@ -328,8 +516,7 @@ p {
   cursor: pointer;
 }
 
-.segmented-control svg,
-.capture-button svg {
+.segmented-control svg {
   width: 19px;
   height: 19px;
   fill: none;
@@ -410,22 +597,14 @@ p {
 
 .position-row {
   align-items: start;
-  padding: 10px 11px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-}
-
-.position-row legend > span {
-  align-self: center;
 }
 
 .position-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
-.capture-button,
 .secondary-button {
   border: 1px solid var(--line-soft);
   border-radius: 9px;
@@ -436,45 +615,17 @@ p {
   cursor: pointer;
 }
 
-.capture-button {
-  display: flex;
-  min-width: 108px;
-  min-height: 45px;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 0 10px;
-  font-size: 11px;
-  font-weight: 680;
-}
-
 kbd {
   font-family: "Roboto Condensed Variable", sans-serif;
   font-weight: 650;
 }
 
-.capture-button kbd {
-  padding: 2px 4px;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  background: var(--ink);
-  color: var(--muted);
-  font-size: 9px;
-}
-
-.capture-button:hover:not(:disabled),
 .secondary-button:hover:not(:disabled) {
   border-color: #565b62;
   background: var(--surface-active);
   color: var(--text);
 }
 
-.capture-button[aria-pressed="true"] {
-  border-color: var(--signal);
-  color: var(--signal);
-}
-
-.capture-button:focus-visible,
 .secondary-button:focus-visible,
 .primary-button:focus-visible,
 .stepper button:focus-visible {
@@ -594,18 +745,19 @@ input:disabled {
   grid-column: 1 / -1;
 }
 
+/* An empty message still forms a grid row, whose row-gap pads the row below. */
+.repeat-controls > .field-message:empty {
+  display: none;
+}
+
 .error-text {
   color: var(--danger);
 }
 
 .action-area {
-  position: sticky;
-  z-index: 10;
-  bottom: 0;
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(230px, 1.08fr);
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   min-height: 82px;
-  margin-top: auto;
   overflow: hidden;
   border-radius: 12px;
   background: var(--signal);
@@ -630,8 +782,7 @@ input:disabled {
 }
 
 .run-state[data-phase="running"] .status-dot,
-.run-state[data-phase="starting"] .status-dot,
-.run-state[data-phase="capturing"] .status-dot {
+.run-state[data-phase="starting"] .status-dot {
   animation: status-pulse 1.4s ease-in-out infinite;
   box-shadow: 0 0 0 5px rgba(17, 19, 14, 0.13);
 }
@@ -658,6 +809,11 @@ input:disabled {
   font-size: 8px;
   font-weight: 650;
   opacity: 0.72;
+}
+
+/* Some phases have no detail line; drop its margin so the title stays centred. */
+.run-copy span:empty {
+  margin-top: 0;
 }
 
 .primary-button {
@@ -734,45 +890,27 @@ input:disabled {
 
 @media (max-width: 540px) {
   .app-shell {
-    padding: 20px 18px;
+    padding: 14px;
   }
 
-  .app-header {
-    margin-bottom: 18px;
-  }
-
-  .brand h1 {
-    font-size: 30px;
-  }
-
-  .control-row {
-    grid-template-columns: 1fr;
-    gap: 7px;
-  }
-
-  .control-row legend > span,
-  .control-body {
-    grid-column: 1;
-  }
-
-  .position-row {
-    padding: 10px;
-  }
-
-  .action-area {
-    grid-template-columns: 1fr;
-  }
-
+  /* Keep the action bar on one row: tighten it rather than stacking. */
   .run-state {
-    min-height: 48px;
-    padding: 10px 14px 3px;
+    gap: 8px;
+    padding: 14px 10px;
   }
 
   .primary-button {
-    min-height: 58px;
-    margin: 0;
-    border-top: 1px solid rgba(17, 19, 14, 0.2);
-    border-left: 0;
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .primary-button svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .primary-button span {
+    font-size: 18px;
   }
 }
 
@@ -793,10 +931,6 @@ input:disabled {
   .position-controls,
   .repeat-controls {
     grid-template-columns: 1fr;
-  }
-
-  .capture-button {
-    width: 100%;
   }
 
   .coordinate-row {

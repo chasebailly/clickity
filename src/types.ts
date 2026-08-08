@@ -15,6 +15,8 @@ export interface ClickitySettings {
   y: number;
   hotkey: string;
   hotkeyDisplay: string;
+  captureHotkey: string;
+  captureHotkeyDisplay: string;
 }
 
 export interface ClickConfig {
@@ -49,6 +51,8 @@ export interface InitialState {
   hotkey: string;
   hotkeyRegistered: boolean;
   hotkeyError: string | null;
+  captureHotkey: string;
+  captureHotkeyError: string | null;
   platform: PlatformInfo;
 }
 

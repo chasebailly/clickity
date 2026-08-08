@@ -19,7 +19,13 @@ export const DEFAULT_SETTINGS: ClickitySettings = {
   y: 0,
   hotkey: "F6",
   hotkeyDisplay: "F6",
+  captureHotkey: "F7",
+  captureHotkeyDisplay: "F7",
 };
+
+function storedString(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
 
 function finiteInteger(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isSafeInteger(value)
@@ -61,14 +67,19 @@ export function loadSettings(): ClickitySettings {
         : DEFAULT_SETTINGS.positionMode,
       x: finiteInteger(parsed.x, DEFAULT_SETTINGS.x),
       y: finiteInteger(parsed.y, DEFAULT_SETTINGS.y),
-      hotkey:
-        typeof parsed.hotkey === "string" && parsed.hotkey.trim()
-          ? parsed.hotkey
-          : DEFAULT_SETTINGS.hotkey,
-      hotkeyDisplay:
-        typeof parsed.hotkeyDisplay === "string" && parsed.hotkeyDisplay.trim()
-          ? parsed.hotkeyDisplay
-          : DEFAULT_SETTINGS.hotkeyDisplay,
+      hotkey: storedString(parsed.hotkey, DEFAULT_SETTINGS.hotkey),
+      hotkeyDisplay: storedString(
+        parsed.hotkeyDisplay,
+        DEFAULT_SETTINGS.hotkeyDisplay,
+      ),
+      captureHotkey: storedString(
+        parsed.captureHotkey,
+        DEFAULT_SETTINGS.captureHotkey,
+      ),
+      captureHotkeyDisplay: storedString(
+        parsed.captureHotkeyDisplay,
+        DEFAULT_SETTINGS.captureHotkeyDisplay,
+      ),
     };
   } catch {
     return { ...DEFAULT_SETTINGS };

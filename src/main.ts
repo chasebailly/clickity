@@ -2,7 +2,7 @@ import "@fontsource-variable/manrope";
 import "@fontsource-variable/roboto-condensed";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import {
   formatDuration,
   intervalInMilliseconds,
@@ -22,6 +22,11 @@ import type {
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 
+// @tauri-apps/api does not export ResizeDirection, so derive it from the method.
+type ResizeDirection = Parameters<
+  ReturnType<typeof getCurrentWindow>["startResizeDragging"]
+>[0];
+
 function byId<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);
   if (!element) throw new Error(`Missing element #${id}`);
@@ -37,9 +42,10 @@ const repeatCountInput = byId<HTMLInputElement>("repeat-count");
 const positionXInput = byId<HTMLInputElement>("position-x");
 const positionYInput = byId<HTMLInputElement>("position-y");
 const coordinateRow = byId<HTMLElement>("coordinate-row");
-const capturePositionButton = byId<HTMLButtonElement>("capture-position");
-const changeHotkeyButton = byId<HTMLButtonElement>("change-hotkey");
-const hotkeyDisplay = byId<HTMLElement>("hotkey-display");
+const titlebar = byId<HTMLElement>("titlebar");
+const appShell = byId<HTMLElement>("app-shell");
+const captureHelp = byId<HTMLElement>("capture-help");
+const settingsDialog = byId<HTMLDialogElement>("settings-dialog");
 const actionHotkey = byId<HTMLElement>("action-hotkey");
 const actionButton = byId<HTMLButtonElement>("action-button");
 const actionLabel = byId<HTMLElement>("action-label");
@@ -49,9 +55,6 @@ const intervalSummary = byId<HTMLElement>("interval-summary");
 const intervalError = byId<HTMLElement>("interval-error");
 const repeatError = byId<HTMLElement>("repeat-error");
 const positionError = byId<HTMLElement>("position-error");
-const captureHelp = byId<HTMLElement>("capture-help");
-const hotkeyError = byId<HTMLElement>("hotkey-error");
-const hotkeyCaptureCopy = byId<HTMLElement>("hotkey-capture-copy");
 const runTitle = byId<HTMLElement>("run-title");
 const runDetail = byId<HTMLElement>("run-detail");
 const liveRegion = byId<HTMLElement>("live-region");
@@ -63,8 +66,44 @@ const settingControls = Array.from(
 );
 
 let settings = loadSettings();
-let hotkeyAccelerator = settings.hotkey;
-let hotkeyLabel = settings.hotkeyDisplay;
+
+// Both global shortcuts are rebindable and behave identically, so they share
+// one capture flow; only the backend command and the DOM nodes differ.
+interface ShortcutBinding {
+  command: "set_hotkey" | "set_capture_hotkey";
+  name: string;
+  button: HTMLButtonElement;
+  display: HTMLElement;
+  error: HTMLElement;
+  copy: HTMLElement;
+  accelerator: string;
+  label: string;
+}
+
+const runShortcut: ShortcutBinding = {
+  command: "set_hotkey",
+  name: "Start / stop shortcut",
+  button: byId<HTMLButtonElement>("change-hotkey"),
+  display: byId<HTMLElement>("hotkey-display"),
+  error: byId<HTMLElement>("hotkey-error"),
+  copy: byId<HTMLElement>("hotkey-capture-copy"),
+  accelerator: settings.hotkey,
+  label: settings.hotkeyDisplay,
+};
+
+const captureShortcut: ShortcutBinding = {
+  command: "set_capture_hotkey",
+  name: "Capture position shortcut",
+  button: byId<HTMLButtonElement>("change-capture-hotkey"),
+  display: byId<HTMLElement>("capture-hotkey-display"),
+  error: byId<HTMLElement>("capture-hotkey-error"),
+  copy: byId<HTMLElement>("capture-hotkey-capture-copy"),
+  accelerator: settings.captureHotkey,
+  label: settings.captureHotkeyDisplay,
+};
+
+const shortcutBindings = [runShortcut, captureShortcut];
+
 let runtime: RuntimeSnapshot = {
   phase: "idle",
   clicksCompleted: 0,
@@ -75,9 +114,8 @@ let runtime: RuntimeSnapshot = {
 let startCountdownId: number | null = null;
 let countdownRemaining = 0;
 let countdownConfig: ClickConfig | null = null;
-let captureInProgress = false;
 let positionCaptureError = "";
-let hotkeyCaptureInProgress = false;
+let activeShortcutBinding: ShortcutBinding | null = null;
 let showValidation = false;
 let syncTimer: number | null = null;
 let unlistenRuntime: UnlistenFn | null = null;
@@ -118,8 +156,10 @@ function readForm(): ClickitySettings {
     ) as ClickitySettings["positionMode"],
     x: numericValue(positionXInput),
     y: numericValue(positionYInput),
-    hotkey: hotkeyAccelerator,
-    hotkeyDisplay: hotkeyLabel,
+    hotkey: runShortcut.accelerator,
+    hotkeyDisplay: runShortcut.label,
+    captureHotkey: captureShortcut.accelerator,
+    captureHotkeyDisplay: captureShortcut.label,
   };
 }
 
@@ -134,8 +174,10 @@ function populateForm(nextSettings: ClickitySettings): void {
   setSelectedValue("button", nextSettings.button);
   setSelectedValue("repeat-mode", nextSettings.repeatMode);
   setSelectedValue("position-mode", nextSettings.positionMode);
-  hotkeyAccelerator = nextSettings.hotkey;
-  hotkeyLabel = nextSettings.hotkeyDisplay;
+  runShortcut.accelerator = nextSettings.hotkey;
+  runShortcut.label = nextSettings.hotkeyDisplay;
+  captureShortcut.accelerator = nextSettings.captureHotkey;
+  captureShortcut.label = nextSettings.captureHotkeyDisplay;
 }
 
 function hasErrors(errors: ValidationErrors): boolean {
@@ -155,11 +197,7 @@ function renderValidation(errors: ValidationErrors): void {
 }
 
 function controlsAreLocked(): boolean {
-  return (
-    runtime.phase === "running" ||
-    startCountdownId !== null ||
-    captureInProgress
-  );
+  return runtime.phase === "running" || startCountdownId !== null;
 }
 
 function renderControlAvailability(): void {
@@ -173,13 +211,14 @@ function renderControlAvailability(): void {
   coordinateRow.dataset.visible = String(fixedMode);
   positionXInput.disabled = locked || !fixedMode;
   positionYInput.disabled = locked || !fixedMode;
-  capturePositionButton.disabled = (locked && !captureInProgress) || !fixedMode;
 
-  if (hotkeyCaptureInProgress) changeHotkeyButton.disabled = false;
+  // The active binding keeps its button live so the capture can be cancelled.
+  for (const binding of shortcutBindings) {
+    binding.button.disabled = locked && binding !== activeShortcutBinding;
+  }
 }
 
-function runtimePhase(): "idle" | "starting" | "capturing" | "running" | "error" {
-  if (captureInProgress) return "capturing";
+function runtimePhase(): "idle" | "starting" | "running" | "error" {
   return startCountdownId !== null ? "starting" : runtime.phase;
 }
 
@@ -189,8 +228,6 @@ function renderRuntime(): void {
   statusLabel.textContent =
     phase === "starting"
       ? "Starting"
-      : phase === "capturing"
-        ? "Capturing position"
       : phase === "running"
         ? "Running"
         : phase === "error"
@@ -201,58 +238,57 @@ function renderRuntime(): void {
   actionButton.classList.toggle("cancel-button", phase === "starting");
   actionButton.dataset.phase = phase;
 
-  if (phase === "capturing") {
-    actionLabel.textContent = "Start clicking";
-    runTitle.textContent = "Position capture armed";
-    runDetail.textContent = "Move the pointer, then press F7.";
-  } else if (phase === "starting") {
+  // Only the error phase carries a detail line now.
+  runDetail.textContent = "";
+
+  if (phase === "starting") {
     actionLabel.textContent = "Cancel start";
     runTitle.textContent = `Starting in ${countdownRemaining}…`;
-    runDetail.textContent = "Move the pointer to where you want Clickity to begin.";
   } else if (phase === "running") {
     actionLabel.textContent = "Stop clicking";
     runTitle.textContent = runtime.targetClicks
       ? `${runtime.clicksCompleted} of ${runtime.targetClicks} clicks`
       : `${runtime.clicksCompleted} click${runtime.clicksCompleted === 1 ? "" : "s"}`;
-    runDetail.textContent = `Running every ${formatDuration(runtime.intervalMs)}.`;
   } else if (phase === "error") {
     actionLabel.textContent = "Try again";
     runTitle.textContent = "Clickity stopped";
     runDetail.textContent = runtime.message ?? "Check the settings and try again.";
   } else {
     actionLabel.textContent = "Start clicking";
-    if (runtime.message) {
-      runTitle.textContent = runtime.message;
-      runDetail.textContent = "Ready for another run.";
-    } else {
-      runTitle.textContent = "Ready when you are";
-      runDetail.textContent = "The first click happens after one interval.";
-    }
+    runTitle.textContent = runtime.message ?? "Ready when you are";
   }
 
-  hotkeyDisplay.textContent = hotkeyCaptureInProgress ? "…" : hotkeyLabel;
-  actionHotkey.textContent = hotkeyLabel;
-  capturePositionButton.querySelector("span")!.textContent = captureInProgress
-    ? "Cancel capture"
-    : "Capture";
-  capturePositionButton.setAttribute(
-    "aria-pressed",
-    String(captureInProgress),
-  );
-  captureHelp.innerHTML = captureInProgress
-    ? "Capture armed. Move the pointer, then press <kbd>F7</kbd>."
-    : "Select Capture, move the pointer, then press <kbd>F7</kbd>.";
+  for (const binding of shortcutBindings) {
+    binding.display.textContent =
+      binding === activeShortcutBinding ? "…" : binding.label;
+  }
+  actionHotkey.textContent = runShortcut.label;
+
+  const captureKey = document.createElement("kbd");
+  captureKey.textContent = captureShortcut.label;
+  captureHelp.textContent = "Move the pointer anywhere, then press ";
+  captureHelp.append(captureKey, " to capture it.");
   const errors = validateSettings(settings);
   actionButton.disabled =
-    captureInProgress ||
-    (phase !== "running" && phase !== "starting" && hasErrors(errors));
+    phase !== "running" && phase !== "starting" && hasErrors(errors);
   renderControlAvailability();
+}
+
+// The window hugs its content, so no dead space sits below the action bar. The
+// content grows and shrinks (coordinate row, error lines), hence refitting here
+// rather than shipping one fixed height.
+function fitWindowHeight(): void {
+  if (!isTauri) return;
+  const target = Math.ceil(titlebar.offsetHeight + appShell.offsetHeight);
+  if (!target || Math.abs(target - window.innerHeight) < 2) return;
+  void getCurrentWindow().setSize(new LogicalSize(window.innerWidth, target));
 }
 
 function renderAll(): void {
   const errors = validateSettings(settings);
   renderValidation(errors);
   renderRuntime();
+  fitWindowHeight();
 }
 
 function announce(message: string): void {
@@ -404,49 +440,8 @@ async function handleAction(): Promise<void> {
   }
 }
 
-async function restoreAppWindow(): Promise<string | null> {
-  const appWindow = getCurrentWindow();
-  let visible = false;
-  try {
-    await appWindow.unminimize();
-    visible = true;
-  } catch {
-    // Continue: show() can still recover a window when unminimize is unsupported.
-  }
-  try {
-    await appWindow.show();
-    visible = true;
-  } catch {
-    // Report below if neither restoration path succeeded.
-  }
-
-  if (!visible) {
-    return "Clickity could not restore its window. Reopen it from the taskbar; the captured coordinates were saved.";
-  }
-
-  try {
-    await appWindow.setFocus();
-  } catch {
-    return "Clickity restored, but your desktop prevented it from taking focus. Select it from the taskbar; the captured coordinates were saved.";
-  }
-  return null;
-}
-
-async function finishPositionCapture(
-  result: PositionCaptureResult,
-): Promise<void> {
-  if (!captureInProgress) return;
-  captureInProgress = false;
-
-  let releaseError = "";
-  if (isTauri) {
-    try {
-      await invoke("cancel_position_capture");
-    } catch (error) {
-      releaseError = errorMessage(error);
-    }
-  }
-
+// F7 is always live, so this fires whenever the user presses it, with no arming.
+function applyPositionCapture(result: PositionCaptureResult): void {
   if (result.position) {
     positionXInput.value = String(result.position.x);
     positionYInput.value = String(result.position.y);
@@ -458,67 +453,10 @@ async function finishPositionCapture(
       `Position captured at X ${result.position.x}, Y ${result.position.y}.`,
     );
   } else {
-    positionCaptureError = result.error ?? "The pointer position could not be captured.";
+    positionCaptureError =
+      result.error ?? "The pointer position could not be captured.";
     announce(positionCaptureError);
   }
-
-  if (releaseError) {
-    positionCaptureError = positionCaptureError
-      ? `${positionCaptureError} ${releaseError}`
-      : releaseError;
-  }
-
-  const restorationError = await restoreAppWindow();
-  if (restorationError) {
-    positionCaptureError = positionCaptureError
-      ? `${positionCaptureError} ${restorationError}`
-      : restorationError;
-    announce(positionCaptureError);
-  }
-  renderAll();
-}
-
-async function beginPositionCapture(): Promise<void> {
-  if (!isTauri) {
-    positionCaptureError = "Position capture is unavailable in browser preview mode.";
-    renderAll();
-    return;
-  }
-
-  try {
-    positionCaptureError = "";
-    await invoke("begin_position_capture");
-    captureInProgress = true;
-    announce("Position capture armed. Move the pointer, then press F7.");
-    renderAll();
-    await getCurrentWindow().minimize();
-  } catch (error) {
-    captureInProgress = false;
-    let releaseError = "";
-    try {
-      await invoke("cancel_position_capture");
-    } catch (cancelError) {
-      releaseError = ` ${errorMessage(cancelError)}`;
-    }
-    positionCaptureError = `${errorMessage(error)}${releaseError}`;
-    announce(positionCaptureError);
-    renderAll();
-  }
-}
-
-async function cancelPositionCapture(): Promise<void> {
-  if (!captureInProgress) return;
-  captureInProgress = false;
-  if (isTauri) {
-    try {
-      await invoke("cancel_position_capture");
-    } catch (error) {
-      positionCaptureError = errorMessage(error);
-    }
-  }
-  const restorationError = await restoreAppWindow();
-  if (restorationError) positionCaptureError = restorationError;
-  announce("Position capture cancelled.");
   renderAll();
 }
 
@@ -561,11 +499,12 @@ function keyToken(event: KeyboardEvent): string | null {
 }
 
 async function handleHotkeyCapture(event: KeyboardEvent): Promise<void> {
-  if (!hotkeyCaptureInProgress || event.repeat) return;
+  const binding = activeShortcutBinding;
+  if (!binding || event.repeat) return;
   if (event.key === "Escape") {
     event.preventDefault();
     endHotkeyCapture();
-    changeHotkeyButton.focus();
+    binding.button.focus();
     return;
   }
 
@@ -581,55 +520,79 @@ async function handleHotkeyCapture(event: KeyboardEvent): Promise<void> {
 
   const functionKey = token.startsWith("F") && /^F\d+$/.test(token);
   if (!functionKey && modifiers.length === 0) {
-    hotkeyError.textContent = "Use a modifier combination or a function key.";
-    announce(hotkeyError.textContent);
+    binding.error.textContent = "Use a modifier combination or a function key.";
+    announce(binding.error.textContent);
     return;
   }
 
   const accelerator = [...modifiers, token].join("+");
-  if (accelerator === "F7") {
-    hotkeyError.textContent = "F7 is reserved for position capture.";
-    hotkeyCaptureCopy.textContent = "Press another shortcut · Esc to cancel";
-    announce(hotkeyError.textContent);
+  const other = binding === runShortcut ? captureShortcut : runShortcut;
+  if (accelerator === other.accelerator) {
+    binding.error.textContent = `${other.label} is already used for the ${other.name.toLowerCase()}.`;
+    binding.copy.textContent = "Press another shortcut · Esc to cancel";
+    announce(binding.error.textContent);
     return;
   }
-  hotkeyCaptureCopy.textContent = "Registering shortcut…";
+
+  binding.copy.textContent = "Registering shortcut…";
   try {
-    if (!isTauri) throw new Error("Shortcuts are unavailable in browser preview mode.");
-    await invoke("set_hotkey", { accelerator });
-    hotkeyAccelerator = accelerator;
-    hotkeyLabel = displayForShortcut(accelerator);
-    settings = { ...readForm(), hotkey: accelerator, hotkeyDisplay: hotkeyLabel };
+    if (!isTauri) {
+      throw new Error("Shortcuts are unavailable in browser preview mode.");
+    }
+    await invoke(binding.command, { accelerator });
+    binding.accelerator = accelerator;
+    binding.label = displayForShortcut(accelerator);
+    settings = readForm();
     saveSettings(settings);
-    hotkeyError.textContent = "";
+    binding.error.textContent = "";
     endHotkeyCapture();
-    announce(`Shortcut changed to ${hotkeyLabel}.`);
+    announce(`${binding.name} changed to ${binding.label}.`);
   } catch (error) {
-    hotkeyError.textContent = errorMessage(error);
-    hotkeyCaptureCopy.textContent = "Press another shortcut · Esc to cancel";
-    announce(hotkeyError.textContent);
+    binding.error.textContent = errorMessage(error);
+    binding.copy.textContent = "Press another shortcut · Esc to cancel";
+    announce(binding.error.textContent);
   }
   renderRuntime();
 }
 
-function beginHotkeyCapture(): void {
+function beginHotkeyCapture(binding: ShortcutBinding): void {
   if (controlsAreLocked()) return;
-  hotkeyCaptureInProgress = true;
-  changeHotkeyButton.textContent = "Cancel";
-  changeHotkeyButton.setAttribute("aria-pressed", "true");
-  hotkeyCaptureCopy.textContent = "Press a shortcut · Esc to cancel";
-  hotkeyError.textContent = "";
+  if (activeShortcutBinding) endHotkeyCapture();
+  activeShortcutBinding = binding;
+  binding.button.textContent = "Cancel";
+  binding.button.setAttribute("aria-pressed", "true");
+  binding.copy.textContent = "Press a shortcut · Esc to cancel";
+  binding.error.textContent = "";
   window.addEventListener("keydown", handleHotkeyCapture, true);
   renderRuntime();
 }
 
 function endHotkeyCapture(): void {
-  hotkeyCaptureInProgress = false;
-  changeHotkeyButton.textContent = "Change";
-  changeHotkeyButton.removeAttribute("aria-pressed");
-  hotkeyCaptureCopy.textContent = "";
+  const binding = activeShortcutBinding;
+  if (!binding) return;
+  activeShortcutBinding = null;
+  binding.button.textContent = "Change";
+  binding.button.removeAttribute("aria-pressed");
+  binding.copy.textContent = "";
   window.removeEventListener("keydown", handleHotkeyCapture, true);
   renderRuntime();
+}
+
+/// Re-registers a saved shortcut, falling back to whatever the backend holds.
+async function restoreShortcut(
+  binding: ShortcutBinding,
+  fallback: string,
+  fallbackError: string | null,
+): Promise<void> {
+  try {
+    await invoke(binding.command, { accelerator: binding.accelerator });
+    binding.label = displayForShortcut(binding.accelerator);
+    binding.error.textContent = "";
+  } catch (error) {
+    binding.accelerator = fallback;
+    binding.label = displayForShortcut(fallback);
+    binding.error.textContent = fallbackError ?? errorMessage(error);
+  }
 }
 
 async function initializeNative(): Promise<void> {
@@ -645,20 +608,28 @@ async function initializeNative(): Promise<void> {
     );
     unlistenPositionCapture = await listen<PositionCaptureResult>(
       "position-capture-result",
-      (event) => void finishPositionCapture(event.payload),
+      (event) => applyPositionCapture(event.payload),
     );
     const initial = await invoke<InitialState>("get_initial_state");
     runtime = initial.runtime;
 
-    try {
-      await invoke("set_hotkey", { accelerator: hotkeyAccelerator });
-      hotkeyLabel = displayForShortcut(hotkeyAccelerator);
-      hotkeyError.textContent = "";
-    } catch (error) {
-      hotkeyAccelerator = initial.hotkey;
-      hotkeyLabel = displayForShortcut(initial.hotkey);
-      hotkeyError.textContent = initial.hotkeyError ?? errorMessage(error);
+    const desiredRun = runShortcut.accelerator;
+    await restoreShortcut(runShortcut, initial.hotkey, initial.hotkeyError);
+    await restoreShortcut(
+      captureShortcut,
+      initial.captureHotkey,
+      initial.captureHotkeyError,
+    );
+
+    // A saved pair that swaps the two defaults loses the first pass, because the
+    // backend still holds the old value. Retry once the other binding has moved.
+    if (runShortcut.accelerator !== desiredRun) {
+      runShortcut.accelerator = desiredRun;
+      await restoreShortcut(runShortcut, initial.hotkey, initial.hotkeyError);
     }
+
+    settings = readForm();
+    saveSettings(settings);
 
     const errors = validateSettings(settings);
     if (!hasErrors(errors)) {
@@ -698,11 +669,6 @@ form.addEventListener("focusout", (event) => {
   }
 });
 
-capturePositionButton.addEventListener("click", () => {
-  if (captureInProgress) void cancelPositionCapture();
-  else void beginPositionCapture();
-});
-
 for (const button of document.querySelectorAll<HTMLButtonElement>(
   "[data-step-target]",
 )) {
@@ -714,15 +680,59 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
   });
 }
 
-changeHotkeyButton.addEventListener("click", () => {
-  if (hotkeyCaptureInProgress) endHotkeyCapture();
-  else beginHotkeyCapture();
+for (const binding of shortcutBindings) {
+  binding.button.addEventListener("click", () => {
+    if (activeShortcutBinding === binding) endHotkeyCapture();
+    else beginHotkeyCapture(binding);
+  });
+}
+
+byId<HTMLButtonElement>("open-settings").addEventListener("click", () => {
+  settingsDialog.showModal();
+});
+
+byId<HTMLButtonElement>("close-settings").addEventListener("click", () => {
+  settingsDialog.close();
+});
+
+// Backdrop clicks land on the dialog element itself.
+settingsDialog.addEventListener("click", (event) => {
+  if (event.target === settingsDialog) settingsDialog.close();
+});
+
+settingsDialog.addEventListener("close", () => {
+  endHotkeyCapture();
 });
 
 window.addEventListener("beforeunload", () => {
   if (unlistenRuntime) unlistenRuntime();
   if (unlistenPositionCapture) unlistenPositionCapture();
-  if (captureInProgress && isTauri) void invoke("cancel_position_capture");
 });
+
+// The window is undecorated, so the titlebar below replaces the native one.
+byId<HTMLButtonElement>("window-minimize").addEventListener("click", () => {
+  void getCurrentWindow().minimize();
+});
+
+byId<HTMLButtonElement>("window-maximize").addEventListener("click", () => {
+  void getCurrentWindow().toggleMaximize();
+});
+
+byId<HTMLButtonElement>("window-close").addEventListener("click", () => {
+  void getCurrentWindow().close();
+});
+
+for (const handle of document.querySelectorAll<HTMLElement>("[data-resize]")) {
+  handle.addEventListener("mousedown", (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    void getCurrentWindow().startResizeDragging(
+      handle.dataset.resize as ResizeDirection,
+    );
+  });
+}
+
+// Web fonts land after first paint and shift row heights, so refit once loaded.
+void document.fonts.ready.then(fitWindowHeight);
 
 void initializeNative();
